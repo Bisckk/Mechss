@@ -10,29 +10,13 @@ interface Props {
 }
 
 export default function SuperAdminShell({ user, children }: Props) {
-  const [mobileOpen,   setMobileOpen]   = useState(false)
-  const [collapsed,    setCollapsed]    = useState(false)
-
-  // Persist collapsed state
-  useEffect(() => {
-    const saved = localStorage.getItem('sa_sidebar_collapsed')
-    if (saved === 'true') setCollapsed(true)
-  }, [])
-
-  const toggleCollapsed = () => {
-    setCollapsed((prev) => {
-      localStorage.setItem('sa_sidebar_collapsed', String(!prev))
-      return !prev
-    })
-  }
+  const [mobileOpen, setMobileOpen] = useState(false)
 
   return (
     <div className="flex h-screen overflow-hidden bg-zinc-950">
       <Sidebar
         mobileOpen={mobileOpen}
         onMobileClose={() => setMobileOpen(false)}
-        collapsed={collapsed}
-        onToggleCollapse={toggleCollapsed}
         user={user}
       />
 
