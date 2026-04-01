@@ -1,0 +1,45 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  *, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    background-color: theme('colors.zinc.950');
+    color: theme('colors.white');
+    overflow-x: hidden;
+  }
+
+  ::selection {
+    background-color: theme('colors.orange.500 / 30%');
+    color: theme('colors.white');
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: theme('colors.zinc.950');
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: theme('colors.zinc.700');
+    border-radius: 3px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: theme('colors.zinc.500');
+  }
+}
