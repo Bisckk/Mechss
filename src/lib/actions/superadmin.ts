@@ -33,7 +33,7 @@ export type PlanFormData = {
 }
 
 export type ActionResult<T = null> =
-  | { ok: true;  data: T }
+  | { ok: true; data: T }
   | { ok: false; error: string }
 
 // ── Workshop CRUD ──────────────────────────────────────────
@@ -59,14 +59,14 @@ export async function createWorkshop(
   const { data: workshop, error: wsErr } = await supabase
     .from('workshops')
     .insert({
-      name:          fd.name,
-      slug:          fd.slug,
-      email:         fd.email,
-      phone:         fd.phone,
-      city:          fd.city,
-      country:       fd.country,
-      plan_id:       fd.plan_id,
-      plan_status:   'trial',
+      name: fd.name,
+      slug: fd.slug,
+      email: fd.email,
+      phone: fd.phone,
+      city: fd.city,
+      country: fd.country,
+      plan_id: fd.plan_id,
+      plan_status: 'trial',
       trial_ends_at: trialEndsAt.toISOString(),
     })
     .select('id')
@@ -79,13 +79,13 @@ export async function createWorkshop(
   // 3. Create the auth user for the initial Admin
   //    The trigger fn_handle_new_auth_user will auto-insert into public.users
   const { error: authErr } = await supabase.auth.admin.createUser({
-    email:         fd.admin_email,
-    password:      fd.admin_password,
+    email: fd.admin_email,
+    password: fd.admin_password,
     email_confirm: true,
     user_metadata: {
-      role:        'admin' satisfies UserRole,
+      role: 'admin' satisfies UserRole,
       workshop_id: workshop.id,
-      full_name:   fd.admin_full_name,
+      full_name: fd.admin_full_name,
     },
   })
 
@@ -123,11 +123,11 @@ export async function createQuickWorkshop(
   const { data: workshop, error } = await supabase
     .from('workshops')
     .insert({
-      name:          fd.name,
-      slug:          fd.slug,
-      country:       'CO',
-      plan_id:       fd.plan_id,
-      plan_status:   'trial',
+      name: fd.name,
+      slug: fd.slug,
+      country: 'CO',
+      plan_id: fd.plan_id,
+      plan_status: 'trial',
       trial_ends_at: trialEndsAt.toISOString(),
     })
     .select('id')
@@ -277,6 +277,25 @@ export async function sendPasswordReset(email: string): Promise<ActionResult> {
   return { ok: true, data: null }
 }
 
+export async function setTempPasswordAction(
+  userId: string,
+  password: string
+): Promise<ActionResult> {
+  if (password.length < 8) {
+    return { ok: false, error: 'La contraseña debe tener al menos 8 caracteres.' }
+  }
+
+  const supabase = createAdminClient()
+
+  const { error } = await supabase.auth.admin.updateUserById(userId, {
+    password,
+    app_metadata: { must_change_password: true },
+  })
+
+  if (error) return { ok: false, error: error.message }
+  return { ok: true, data: null }
+}
+
 // ── Platform accounting ────────────────────────────────────
 
 export type PlatformEntryData = {
@@ -333,13 +352,13 @@ export async function createAdminUser(
   const supabase = createAdminClient()
 
   const { data, error: authErr } = await supabase.auth.admin.createUser({
-    email:         fd.email,
-    password:      fd.password,
+    email: fd.email,
+    password: fd.password,
     email_confirm: true,
     user_metadata: {
-      role:        'admin' satisfies UserRole,
+      role: 'admin' satisfies UserRole,
       workshop_id: fd.workshop_id,
-      full_name:   fd.full_name,
+      full_name: fd.full_name,
     },
   })
 
@@ -349,4 +368,48 @@ export async function createAdminUser(
 
   revalidatePath('/superadmin/users')
   return { ok: true, data: { id: data.user.id } }
+}
+
+export type UpdateAdminUserFormData = {
+  full_name: string
+  email: string
+  workshop_id: string
+}
+
+export async function updateAdminUser(
+  userId: string,
+  fd: UpdateAdminUserFormData
+): Promise<ActionResult> {
+  const supabase = createAdminClient()
+
+  // Update Auth user (email and metadata)
+  const { error: authErr } = await supabase.auth.admin.updateUserById(userId, {
+    email: fd.email,
+    user_metadata: {
+      role: 'admin',
+      workshop_id: fd.workshop_id,
+      full_name: fd.full_name,
+    },
+  })
+
+  if (authErr) {
+    return { ok: false, error: `Error al actualizar auth: ${authErr.message}` }
+  }
+
+  // Update Users table
+  const { error: dbErr } = await supabase
+    .from('users')
+    .update({
+      full_name: fd.full_name,
+      email: fd.email,
+      workshop_id: fd.workshop_id,
+    })
+    .eq('id', userId)
+
+  if (dbErr) {
+    return { ok: false, error: `Error al actualizar perfil: ${dbErr.message}` }
+  }
+
+  revalidatePath('/superadmin/users')
+  return { ok: true, data: null }
 }

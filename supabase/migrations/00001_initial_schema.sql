@@ -12,7 +12,7 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 -- ============================================================
 
 CREATE TYPE user_role AS ENUM (
-  'superadmin',
+  'admin',
   'admin',
   'receptionist',
   'mechanic'
@@ -38,7 +38,7 @@ CREATE TYPE repair_status AS ENUM (
   'waiting_parts',
   'in_repair',
   'quality_check',
-  'ready',
+  'ready'super,
   'delivered'
 );
 

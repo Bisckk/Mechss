@@ -31,13 +31,24 @@ export async function middleware(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   const { pathname } = request.nextUrl
 
+  const AUTH_PAGES = ['/login', '/register', '/forgot-password', '/reset-password']
+  const isAuthPage = AUTH_PAGES.includes(pathname)
+
+  // If the user must change their password, block every route except /change-password
+  if (user && !isAuthPage && pathname !== '/change-password') {
+    if (user.app_metadata?.must_change_password === true) {
+      return NextResponse.redirect(new URL('/change-password', request.url))
+    }
+  }
+
   // Redirect unauthenticated users away from protected routes
   if (pathname.startsWith('/dashboard') && !user) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
   // Redirect authenticated users away from auth pages → role-aware dashboard
-  if ((pathname === '/login' || pathname === '/register') && user) {
+  if (isAuthPage && user) {
+    // Still let must_change_password users reach /change-password (handled above)
     const { data: profileData } = await supabase
       .from('users')
       .select('role')

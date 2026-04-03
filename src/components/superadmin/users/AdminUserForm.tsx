@@ -1,12 +1,14 @@
 'use client'
 
 import { useState, useTransition, useRef, useEffect } from 'react'
-import { createAdminUser, createQuickWorkshop, type AdminUserFormData } from '@/lib/actions/superadmin'
+import { createAdminUser, createQuickWorkshop, updateAdminUser, type AdminUserFormData } from '@/lib/actions/superadmin'
+import type { AdminUser } from './AdminUsersList'
 
 interface Props {
   workshops: { id: string; name: string }[]
   planOptions: { id: string; name: string }[]
-  onSuccess: () => void
+  initialData?: AdminUser | null
+  onSuccess: (isEdit: boolean) => void
   onCancel: () => void
 }
 
@@ -14,15 +16,16 @@ function slugify(s: string) {
   return s.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
 }
 
-export default function AdminUserForm({ workshops, planOptions, onSuccess, onCancel }: Props) {
+export default function AdminUserForm({ workshops, planOptions, initialData, onSuccess, onCancel }: Props) {
+  const isEdit = !!initialData
   const [isCreatingWorkshop, setIsCreatingWorkshop] = useState(false)
   const [formData, setFormData] = useState<AdminUserFormData>({
-    full_name: '',
-    email: '',
+    full_name: initialData?.full_name || '',
+    email: initialData?.email || '',
     password: '',
-    workshop_id: '',
+    workshop_id: initialData?.workshop_id || '',
   })
-  
+
   const [workshopData, setWorkshopData] = useState({
     name: '',
     slug: '',
@@ -45,7 +48,7 @@ export default function AdminUserForm({ workshops, planOptions, onSuccess, onCan
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
-    
+
     startTransition(async () => {
       let finalWorkshopId = formData.workshop_id
 
@@ -63,15 +66,28 @@ export default function AdminUserForm({ workshops, planOptions, onSuccess, onCan
       }
 
       if (!finalWorkshopId) {
-         setError('Por favor selecciona o crea un taller.')
-         return
+        setError('Por favor selecciona o crea un taller.')
+        return
       }
 
-      const res = await createAdminUser({ ...formData, workshop_id: finalWorkshopId })
-      if (res.ok) {
-        onSuccess()
+      if (isEdit && initialData?.id) {
+        const res = await updateAdminUser(initialData.id, {
+          full_name: formData.full_name,
+          email: formData.email,
+          workshop_id: finalWorkshopId,
+        })
+        if (res.ok) {
+          onSuccess(true)
+        } else {
+          setError(res.error)
+        }
       } else {
-        setError(res.error)
+        const res = await createAdminUser({ ...formData, workshop_id: finalWorkshopId })
+        if (res.ok) {
+          onSuccess(false)
+        } else {
+          setError(res.error)
+        }
       }
     })
   }
@@ -80,7 +96,7 @@ export default function AdminUserForm({ workshops, planOptions, onSuccess, onCan
     <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
       <div className="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl relative my-auto">
         <div className="p-5 border-b border-zinc-800 flex items-center justify-between sticky top-0 bg-zinc-900/95 z-10">
-          <h2 className="text-lg font-bold text-white">Nuevo Usuario Admin</h2>
+          <h2 className="text-lg font-bold text-white">{isEdit ? 'Editar Usuario Admin' : 'Nuevo Usuario Admin'}</h2>
           <button
             onClick={onCancel}
             className="text-zinc-500 hover:text-white transition-colors p-1"
@@ -130,26 +146,28 @@ export default function AdminUserForm({ workshops, planOptions, onSuccess, onCan
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-zinc-300 mb-1.5" htmlFor="password">
-                Contraseña Temporal *
-              </label>
-              <input
-                id="password"
-                type="password"
-                required
-                minLength={6}
-                value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white text-sm focus:outline-none focus:border-orange-500"
-                placeholder="Mínimo 6 caracteres"
-              />
-            </div>
+            {!isEdit && (
+              <div>
+                <label className="block text-sm font-medium text-zinc-300 mb-1.5" htmlFor="password">
+                  Contraseña Temporal *
+                </label>
+                <input
+                  id="password"
+                  type="password"
+                  required={!isEdit}
+                  minLength={6}
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white text-sm focus:outline-none focus:border-orange-500"
+                  placeholder="Mínimo 6 caracteres"
+                />
+              </div>
+            )}
           </div>
 
           <div className="border-t border-zinc-800 pt-5">
             <h3 className="text-sm font-bold text-white mb-3">Vincular a Taller</h3>
-            
+
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-zinc-400 mb-1.5" htmlFor="workshop_id">
@@ -169,7 +187,7 @@ export default function AdminUserForm({ workshops, planOptions, onSuccess, onCan
               {isCreatingWorkshop && (
                 <div className="bg-zinc-800/50 border border-orange-500/20 rounded-xl p-4 space-y-4">
                   <h4 className="text-xs font-bold text-orange-400 uppercase tracking-wider">Detalles Básicos del Nuevo Taller</h4>
-                  
+
                   <div>
                     <label className="block text-xs font-medium text-zinc-400 mb-1" htmlFor="new_ws_name">
                       Nombre del Taller
@@ -183,7 +201,7 @@ export default function AdminUserForm({ workshops, planOptions, onSuccess, onCan
                       className="w-full px-3 py-1.5 bg-zinc-800 border border-zinc-700 rounded-md text-white text-sm focus:outline-none focus:border-orange-500"
                     />
                   </div>
-                  
+
                   <div>
                     <label className="block text-xs font-medium text-zinc-400 mb-1" htmlFor="new_ws_slug">
                       URL Slug
@@ -232,7 +250,7 @@ export default function AdminUserForm({ workshops, planOptions, onSuccess, onCan
               disabled={isPending}
               className="px-4 py-2 bg-orange-500 hover:bg-orange-400 text-white text-sm font-bold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isPending ? 'Procesando...' : 'Crear Usuario'}
+              {isPending ? 'Procesando...' : (isEdit ? 'Guardar Cambios' : 'Crear Usuario')}
             </button>
           </div>
         </form>
@@ -292,7 +310,7 @@ function CustomSelect({
       </button>
 
       {open && (
-        <div 
+        <div
           ref={menuRef}
           className="absolute z-[100] mt-1.5 w-full bg-zinc-800 border border-zinc-700 rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-100 max-h-56 overflow-y-auto"
         >
@@ -310,13 +328,12 @@ function CustomSelect({
                   <button
                     type="button"
                     onClick={() => { onChange(opt.value); setOpen(false) }}
-                    className={`w-full text-left px-3 py-2 text-sm rounded-lg transition-colors flex items-center ${
-                      opt.isAction 
-                        ? 'text-orange-400 font-bold hover:bg-orange-500/10' 
-                        : value === opt.value
-                          ? 'bg-zinc-700 text-white font-semibold'
-                          : 'text-zinc-300 hover:bg-zinc-700 hover:text-white'
-                    }`}
+                    className={`w-full text-left px-3 py-2 text-sm rounded-lg transition-colors flex items-center ${opt.isAction
+                      ? 'text-orange-400 font-bold hover:bg-orange-500/10'
+                      : value === opt.value
+                        ? 'bg-zinc-700 text-white font-semibold'
+                        : 'text-zinc-300 hover:bg-zinc-700 hover:text-white'
+                      }`}
                   >
                     {opt.label}
                   </button>

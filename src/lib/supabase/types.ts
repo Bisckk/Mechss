@@ -2,10 +2,10 @@
 // Supabase Database types — non-circular, flat definitions
 // ============================================================
 
-export type UserRole      = 'superadmin' | 'admin' | 'receptionist' | 'mechanic'
-export type PlanStatus    = 'active' | 'inactive' | 'trial'
+export type UserRole = 'superadmin' | 'admin' | 'receptionist' | 'mechanic'
+export type PlanStatus = 'active' | 'inactive' | 'trial'
 export type AppointmentStatus = 'pending' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled'
-export type RepairStatus  = 'received' | 'diagnosing' | 'waiting_parts' | 'in_repair' | 'quality_check' | 'ready' | 'delivered'
+export type RepairStatus = 'received' | 'diagnosing' | 'waiting_parts' | 'in_repair' | 'quality_check' | 'ready' | 'delivered'
 export type PaymentStatus = 'pending' | 'partial' | 'paid' | 'refunded'
 export type AccountingType = 'income' | 'expense'
 
@@ -41,10 +41,19 @@ type ClientRow = {
   notes: string | null; is_active: boolean; created_at: string; updated_at: string
 }
 
+type VehicleRow = {
+  id: string; workshop_id: string; client_id: string; plate: string
+  brand: string; model: string; year: number | null
+  fuel_type: 'FI' | 'Carburada' | null; color: string | null
+  notes: string | null; is_active: boolean; created_at: string; updated_at: string
+}
+
 type AppointmentRow = {
-  id: string; workshop_id: string; client_id: string; mechanic_id: string | null
+  id: string; workshop_id: string; client_id: string; vehicle_id: string | null
+  mechanic_id: string | null
   title: string; description: string | null; scheduled_at: string
   duration_minutes: number; status: AppointmentStatus; notes: string | null
+  vehicle_info: string | null
   created_by: string | null; created_at: string; updated_at: string
 }
 
@@ -90,67 +99,72 @@ export interface Database {
   public: {
     Tables: {
       plans: {
-        Row:    PlanRow
+        Row: PlanRow
         Insert: Omit<PlanRow, 'id' | 'created_at' | 'updated_at'> & { id?: string }
         Update: Partial<Omit<PlanRow, 'id'>>
       }
       workshops: {
-        Row:    WorkshopRow
+        Row: WorkshopRow
         Insert: Omit<WorkshopRow, 'id' | 'created_at' | 'updated_at'> & { id?: string }
         Update: Partial<Omit<WorkshopRow, 'id'>>
       }
       users: {
-        Row:    UserRow
+        Row: UserRow
         Insert: Omit<UserRow, 'created_at' | 'updated_at'>
         Update: Partial<Omit<UserRow, 'id'>>
       }
       clients: {
-        Row:    ClientRow
+        Row: ClientRow
         Insert: Omit<ClientRow, 'id' | 'created_at' | 'updated_at'> & { id?: string }
         Update: Partial<Omit<ClientRow, 'id'>>
       }
+      vehicles: {
+        Row: VehicleRow
+        Insert: Omit<VehicleRow, 'id' | 'created_at' | 'updated_at'> & { id?: string }
+        Update: Partial<Omit<VehicleRow, 'id'>>
+      }
       appointments: {
-        Row:    AppointmentRow
+        Row: AppointmentRow
         Insert: Omit<AppointmentRow, 'id' | 'created_at' | 'updated_at'> & { id?: string }
         Update: Partial<Omit<AppointmentRow, 'id'>>
       }
       inventory: {
-        Row:    InventoryRow
+        Row: InventoryRow
         Insert: Omit<InventoryRow, 'id' | 'created_at' | 'updated_at'> & { id?: string }
         Update: Partial<Omit<InventoryRow, 'id'>>
       }
       repairs: {
-        Row:    RepairRow
+        Row: RepairRow
         Insert: Omit<RepairRow, 'id' | 'tracking_code' | 'created_at' | 'updated_at'> & { id?: string; tracking_code?: string }
         Update: Partial<Omit<RepairRow, 'id'>>
       }
       repair_updates: {
-        Row:    RepairUpdateRow
+        Row: RepairUpdateRow
         Insert: Omit<RepairUpdateRow, 'id' | 'created_at'> & { id?: string }
         Update: Partial<Omit<RepairUpdateRow, 'id'>>
       }
       accounting: {
-        Row:    AccountingRow
+        Row: AccountingRow
         Insert: Omit<AccountingRow, 'id' | 'created_at' | 'updated_at'> & { id?: string }
         Update: Partial<Omit<AccountingRow, 'id'>>
       }
       platform_accounting: {
-        Row:    PlatformAccountingRow
+        Row: PlatformAccountingRow
         Insert: Omit<PlatformAccountingRow, 'id' | 'created_at' | 'updated_at'> & { id?: string }
         Update: Partial<Omit<PlatformAccountingRow, 'id'>>
       }
     }
     Views: Record<string, never>
     Enums: {
-      user_role:          UserRole
-      plan_status:        PlanStatus
+      user_role: UserRole
+      plan_status: PlanStatus
       appointment_status: AppointmentStatus
-      repair_status:      RepairStatus
-      payment_status:     PaymentStatus
-      accounting_type:    AccountingType
+      repair_status: RepairStatus
+      payment_status: PaymentStatus
+      accounting_type: AccountingType
     }
     Functions: {
-      get_my_role:        { Args: Record<never, never>; Returns: UserRole }
+      get_my_role: { Args: Record<never, never>; Returns: UserRole }
       get_my_workshop_id: { Args: Record<never, never>; Returns: string }
     }
     CompositeTypes: Record<string, never>
