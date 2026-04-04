@@ -1,11 +1,14 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Monitor, Smartphone, LayoutTemplate, Palette, Type, Save, Link as LinkIcon, Eye, Zap, Loader2, Shapes } from 'lucide-react'
+import { Monitor, Smartphone, LayoutTemplate, Palette, Type, Save, Link as LinkIcon, Eye, EyeOff, Zap, Loader2, Shapes, ChevronUp, ChevronDown, Rocket, Search, ShoppingCart, Wrench, Image as ImageIcon, Star, MessageCircleQuestion, MapPin, Plus, Pipette, ArrowLeft, Trash2, Box } from 'lucide-react'
 import { getLandingPageConfigAction, updateLandingPageConfigAction, LandingPageConfig } from '@/lib/actions/builder'
+import ImageUploader from '@/components/ui/ImageUploader'
 
-export default function BuilderClient() {
-    const [config, setConfig] = useState<LandingPageConfig | null>(null)
+import LandingClient from '@/app/t/[slug]/LandingClient'
+
+export default function BuilderClient({ initialConfig, workshop, products }: { initialConfig?: LandingPageConfig | null, workshop: any, products: any[] }) {
+    const [config, setConfig] = useState<LandingPageConfig | null>(initialConfig || null)
     const [isLoading, setIsLoading] = useState(true)
     const [isSaving, setIsSaving] = useState(false)
     const [isMobilePreview, setIsMobilePreview] = useState(false)
@@ -28,7 +31,11 @@ export default function BuilderClient() {
     const presetColors = ['#f97316', '#3b82f6', '#10b981', '#8b5cf6', '#f43f5e', '#eab308']
 
     useEffect(() => {
-        loadConfig()
+        if (!initialConfig) {
+            loadConfig()
+        } else {
+            setIsLoading(false)
+        }
     }, [])
 
     const loadConfig = async () => {
@@ -47,10 +54,10 @@ export default function BuilderClient() {
         setConfig({ ...config, [field]: value })
     }
 
-    const handleBlockChange = (blockId: string, contentField: string, value: string) => {
+    const handleBlockContentChange = (id: string, contentField: string, value: string) => {
         if (!config) return
         const newBlocks = config.blocks.map(b => {
-            if (b.id === blockId) {
+            if (b.id === id) {
                 return { ...b, content: { ...b.content, [contentField]: value } }
             }
             return b
@@ -58,288 +65,486 @@ export default function BuilderClient() {
         setConfig({ ...config, blocks: newBlocks })
     }
 
+    const handleBlockArrayItemChange = (id: string, arrayName: string, itemIndex: number, field: string, value: string) => {
+        if (!config) return
+        const newBlocks = config.blocks.map(b => {
+            if (b.id === id) {
+                const currentArray = b.content[arrayName] || []
+                const newArray = [...currentArray]
+                newArray[itemIndex] = { ...newArray[itemIndex], [field]: value }
+                return { ...b, content: { ...b.content, [arrayName]: newArray } }
+            }
+            return b
+        })
+        setConfig({ ...config, blocks: newBlocks })
+    }
+
+    const addBlockArrayItem = (id: string, arrayName: string, defaultItem: any) => {
+        if (!config) return
+        const newBlocks = config.blocks.map(b => {
+            if (b.id === id) {
+                const currentArray = b.content[arrayName] || []
+                return { ...b, content: { ...b.content, [arrayName]: [...currentArray, defaultItem] } }
+            }
+            return b
+        })
+        setConfig({ ...config, blocks: newBlocks })
+    }
+
+    const deleteBlockArrayItem = (id: string, arrayName: string, itemIndex: number) => {
+        if (!config) return
+        const newBlocks = config.blocks.map(b => {
+            if (b.id === id) {
+                const currentArray = b.content[arrayName] || []
+                return { ...b, content: { ...b.content, [arrayName]: currentArray.filter((_: any, i: number) => i !== itemIndex) } }
+            }
+            return b
+        })
+        setConfig({ ...config, blocks: newBlocks })
+    }
+
+    const handleBlockVisibility = (id: string, visible: boolean) => {
+        if (!config) return
+        const newBlocks = config.blocks.map(b => b.id === id ? { ...b, visible } : b)
+        setConfig({ ...config, blocks: newBlocks })
+    }
+
     const handleSave = async () => {
         if (!config) return
         setIsSaving(true)
-        setError('')
-        const { id, workshop_id, ...updates } = config
-        const res = await updateLandingPageConfigAction(updates)
-        if (!res.ok) {
-            setError(res.error)
+        const res = await updateLandingPageConfigAction(config)
+        if (res.ok) {
+            alert('¡Configuración guardada con éxito!')
+        } else {
+            alert(`Error al guardar: ${res.error}`)
         }
         setIsSaving(false)
     }
 
-    if (isLoading) {
-        return (
-            <div className="flex flex-col items-center justify-center h-[60vh] gap-4">
-                <Loader2 className="w-12 h-12 text-orange-500 animate-spin" />
-                <p className="text-zinc-500 font-semibold animate-pulse">Cargando constructor...</p>
-            </div>
-        )
+    const [activeTab, setActiveTab] = useState<'main' | 'block'>('main')
+    const [activeBlockId, setActiveBlockId] = useState<string | null>(null)
+    const [isAddMenuOpen, setIsAddMenuOpen] = useState(false)
+
+    // ... (rest kept as logic)
+    const moveBlock = (index: number, direction: 'up' | 'down') => {
+        if (!config) return
+        const newBlocks = [...config.blocks]
+        if (direction === 'up' && index > 0) {
+            const temp = newBlocks[index - 1]
+            newBlocks[index - 1] = newBlocks[index]
+            newBlocks[index] = temp
+        } else if (direction === 'down' && index < newBlocks.length - 1) {
+            const temp = newBlocks[index + 1]
+            newBlocks[index + 1] = newBlocks[index]
+            newBlocks[index] = temp
+        }
+        setConfig({ ...config, blocks: newBlocks })
     }
 
-    if (!config) return null
+    const addBlock = (type: string) => {
+        if (!config) return
+        const newBlock = {
+            id: `${type}_${Date.now()}`,
+            type,
+            visible: true,
+            content: { title: `Nuevo Bloque` }
+        }
+        setConfig({ ...config, blocks: [...config.blocks, newBlock] })
+    }
 
-    // For the preview panel
-    const heroBlock = config.blocks.find(b => b.type === 'hero')
-    const trackBlock = config.blocks.find(b => b.type === 'tracking')
+    const deleteBlock = (id: string) => {
+        if (!config) return
+        setConfig({ ...config, blocks: config.blocks.filter(b => b.id !== id) })
+        if (activeBlockId === id) setActiveTab('main')
+    }
+
+    const openBlockEditor = (id: string) => {
+        setActiveBlockId(id)
+        setActiveTab('block')
+    }
+
+    if (isLoading) return <div className="p-8 text-white">Cargando constructor...</div>
+    if (error || !config) return <div className="p-8 text-red-500">Error: {error || 'No se pudo cargar la configuración.'}</div>
+
+    const activeBlock = config.blocks.find(b => b.id === activeBlockId)
+
+    const BLOCK_TYPES = [
+        { id: 'hero', label: 'Banner Principal', icon: Rocket },
+        { id: 'tracking', label: 'Rastreo en Vivo', icon: Search },
+        { id: 'ecommerce', label: 'Tienda en Línea', icon: ShoppingCart },
+        { id: 'services', label: 'Servicios', icon: Wrench },
+        { id: 'gallery', label: 'Galería de Trabajos', icon: ImageIcon },
+        { id: 'testimonials', label: 'Testimonios', icon: Star },
+        { id: 'faq', label: 'Preguntas Frecuentes', icon: MessageCircleQuestion },
+        { id: 'contact', label: 'Mapa y Contacto', icon: MapPin },
+    ]
 
     return (
-        <div className="flex flex-col h-[calc(100vh-8rem)] animate-in fade-in zoom-in-95 duration-500 gap-4">
+        <div className="flex h-[calc(100vh-4rem)] bg-zinc-950 overflow-hidden text-white font-sans animate-in fade-in duration-500">
 
-            {/* Header */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 flex-shrink-0">
-                <div>
-                    <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
-                        <Palette className="w-6 h-6 text-orange-500" /> Constructor Landing Page
-                    </h1>
-                    <div className="flex items-center gap-2 mt-2">
-                        <span className="text-xs font-bold bg-white/10 text-white px-2 py-0.5 rounded border border-white/10 tracking-wider">
-                            URL: /t/{config.slug}
-                        </span>
+            {/* Panel de Controles (Izquierdo) */}
+            <div className="w-[380px] bg-zinc-900 border-r border-white/5 flex flex-col h-full shrink-0 relative z-20 shadow-2xl">
+                {/* Header */}
+                <div className="p-5 border-b border-white/5 flex items-center justify-between bg-zinc-950/50 backdrop-blur-md">
+                    <div className="flex items-center gap-2 font-bold text-white tracking-tight">
+                        <Palette className="w-4 h-4 text-orange-500" />
+                        Apariencia Web
                     </div>
-                </div>
-
-                <div className="flex items-center gap-3">
-                    {/* Toggle de Vista */}
-                    <div className="flex bg-zinc-900 border border-white/5 p-1 rounded-lg">
-                        <button
-                            onClick={() => setIsMobilePreview(false)}
-                            className={`flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-md transition ${!isMobilePreview ? 'text-white bg-white/10 shadow-sm' : 'text-zinc-500 hover:text-white'}`}
-                        >
-                            <Monitor className="w-4 h-4" /> PC
-                        </button>
-                        <button
-                            onClick={() => setIsMobilePreview(true)}
-                            className={`flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-md transition ${isMobilePreview ? 'text-white bg-white/10 shadow-sm' : 'text-zinc-500 hover:text-white'}`}
-                        >
-                            <Smartphone className="w-4 h-4" /> Móvil
-                        </button>
-                    </div>
-
-                    <a
-                        href={`/t/${config.slug}`}
-                        target="_blank"
-                        className="bg-zinc-800 hover:bg-zinc-700 text-white px-4 py-2 rounded-xl text-sm font-semibold transition-all flex items-center gap-2"
-                    >
-                        <Eye className="w-4 h-4" /> Ver en vivo
-                    </a>
-
                     <button
                         onClick={handleSave}
                         disabled={isSaving}
-                        className="bg-orange-500 hover:bg-orange-400 text-white px-4 py-2 rounded-xl text-sm font-semibold transition-all shadow-lg shadow-orange-500/20 disabled:opacity-50 flex items-center gap-2"
+                        className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg text-xs font-bold transition-all shadow-lg hover:shadow-orange-500/20 active:scale-95 disabled:opacity-50"
                     >
-                        {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                        {isSaving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
                         Guardar
                     </button>
                 </div>
-            </div>
 
-            {error && (
-                <div className="bg-rose-500/10 border border-rose-500/20 text-rose-400 text-sm rounded-xl p-3 font-medium flex-shrink-0">
-                    {error}
-                </div>
-            )}
-
-            {/* Main Builder Area */}
-            <div className="flex max-lg:flex-col flex-1 min-h-0 gap-6 overflow-hidden mt-2">
-
-                {/* Sidebar Config */}
-                <aside className="w-full lg:w-80 flex flex-col bg-zinc-900/50 border border-white/5 rounded-2xl overflow-y-auto backdrop-blur-md shrink-0 scrollbar-thin scrollbar-thumb-zinc-700">
-                    <div className="p-5 border-b border-white/5">
-                        <h2 className="text-sm font-semibold text-white">Configuración del sitio</h2>
-                    </div>
-
-                    <div className="p-5 space-y-6 pb-20">
-
-                        {/* General */}
-                        <div>
-                            <p className="flex items-center gap-2 text-xs font-semibold text-zinc-400 mb-3 uppercase tracking-wider">
-                                <LinkIcon className="w-3.5 h-3.5" /> Enlace (Slug)
-                            </p>
-                            <input
-                                type="text"
-                                value={config.slug}
-                                onChange={(e) => handleChange('slug', e.target.value.toLowerCase().replace(/[^a-z0-9]+/g, '-'))}
-                                className="w-full bg-black/40 border border-white/5 rounded-lg p-2.5 text-sm text-white focus:outline-none focus:border-orange-500/50 transition-colors"
-                            />
-                        </div>
-
-                        <div className="h-px bg-white/5 my-4" />
-
-                        {/* Theme */}
-                        <div>
-                            <p className="flex items-center gap-2 text-xs font-semibold text-zinc-400 mb-3 uppercase tracking-wider">
-                                <Palette className="w-3.5 h-3.5" /> Diseño y Color
-                            </p>
-
-                            <div className="space-y-4">
-                                <div>
-                                    <label className="text-xs text-zinc-500 block mb-1">Color Principal</label>
-                                    <div className="flex gap-2 mb-2">
-                                        {presetColors.map(color => (
-                                            <div
-                                                key={color}
-                                                onClick={() => handleChange('primary_color', color)}
-                                                className="w-6 h-6 rounded-full cursor-pointer transition-transform hover:scale-110"
-                                                style={{ backgroundColor: color, border: config.primary_color === color ? '2px solid white' : 'none' }}
-                                            />
-                                        ))}
-                                    </div>
-                                    <input
-                                        type="color"
-                                        value={config.primary_color}
-                                        onChange={(e) => handleChange('primary_color', e.target.value)}
-                                        className="w-full h-8 cursor-pointer rounded-lg border-none bg-transparent"
-                                    />
+                <div className="flex-1 overflow-y-auto customize-scrollbar">
+                    {activeTab === 'main' ? (
+                        <div className="p-5 space-y-8">
+                            {/* COLORES Y TIPOGRAFÍA */}
+                            <section className="space-y-5">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <Shapes className="w-4 h-4 text-zinc-400" />
+                                    <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Estética Base</h3>
                                 </div>
 
+                                {/* Color Tema */}
                                 <div>
-                                    <label className="text-xs text-zinc-500 block mb-1 flex items-center gap-1"><Type className="w-3 h-3" /> Fuente</label>
+                                    <label className="text-xs font-semibold text-zinc-400 block mb-2">Color Primario</label>
+                                    <div className="flex flex-wrap gap-2">
+                                        {presetColors.map(c => (
+                                            <button
+                                                key={c}
+                                                onClick={() => handleChange('primary_color', c)}
+                                                className={`w-8 h-8 rounded-full border-2 transition-transform hover:scale-110 active:scale-95 ${config.primary_color === c ? 'border-white scale-110' : 'border-transparent'}`}
+                                                style={{ backgroundColor: c }}
+                                            />
+                                        ))}
+                                        <div className="relative">
+                                            <input
+                                                type="color"
+                                                value={config.primary_color}
+                                                onChange={(e) => handleChange('primary_color', e.target.value)}
+                                                className="w-8 h-8 rounded-full border-2 border-white/10 opacity-0 absolute inset-0 cursor-pointer"
+                                            />
+                                            <div className="w-8 h-8 rounded-full border-2 border-white/10 flex items-center justify-center bg-zinc-800 text-xs text-zinc-400">
+                                                <Pipette className="w-4 h-4" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Forma de Botones */}
+                                <div>
+                                    <label className="text-xs font-semibold text-zinc-400 block mb-2">Forma de Botones</label>
+                                    <div className="flex gap-2">
+                                        {radiusOptions.map(opt => (
+                                            <button
+                                                key={opt.id}
+                                                onClick={() => handleChange('button_radius', opt.id)}
+                                                className={`flex-1 py-1.5 px-1 text-xs font-bold text-center border transition-all ${opt.id} ${config.button_radius === opt.id ? 'bg-orange-500/10 border-orange-500/50 text-orange-400' : 'bg-black/40 border-white/10 text-zinc-500 hover:text-white'}`}
+                                            >
+                                                {opt.label}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Tipografía */}
+                                <div>
+                                    <label className="text-xs font-semibold text-zinc-400 block mb-2">Tipografía Principal</label>
                                     <select
                                         value={config.font_family}
                                         onChange={(e) => handleChange('font_family', e.target.value)}
-                                        className="w-full bg-black/40 border border-white/5 rounded-lg p-2 text-sm text-white focus:outline-none"
+                                        className="w-full bg-black/40 border border-white/5 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-orange-500/50"
                                     >
                                         {fontOptions.map(f => <option key={f.id} value={f.id}>{f.label}</option>)}
                                     </select>
                                 </div>
+                            </section>
 
-                                <div>
-                                    <label className="text-xs text-zinc-500 block mb-1 flex items-center gap-1"><Shapes className="w-3 h-3" /> Bordes de Botones</label>
-                                    <select
-                                        value={config.button_radius}
-                                        onChange={(e) => handleChange('button_radius', e.target.value)}
-                                        className="w-full bg-black/40 border border-white/5 rounded-lg p-2 text-sm text-white focus:outline-none"
+                            <hr className="border-white/5" />
+
+                            {/* REORDERABLE LAYERS */}
+                            <section className="space-y-4">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <LayoutTemplate className="w-4 h-4 text-zinc-400" />
+                                    <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Capas de la Página</h3>
+                                </div>
+
+                                <div className="space-y-2">
+                                    {config.blocks.map((block, index) => {
+                                        const typeInfo = BLOCK_TYPES.find(t => t.id === block.type)
+                                        return (
+                                            <div key={block.id} className="flex items-center bg-white/[0.02] border border-white/5 rounded-xl p-2 group hover:border-orange-500/30 transition-all">
+                                                <div className="flex flex-col gap-1 mr-2 px-1">
+                                                    <button onClick={() => moveBlock(index, 'up')} disabled={index === 0} className="text-zinc-600 hover:text-white disabled:opacity-30"><ChevronUp className="w-4 h-4" /></button>
+                                                    <button onClick={() => moveBlock(index, 'down')} disabled={index === config.blocks.length - 1} className="text-zinc-600 hover:text-white disabled:opacity-30"><ChevronDown className="w-4 h-4" /></button>
+                                                </div>
+
+                                                <div
+                                                    className="flex-1 cursor-pointer flex items-center gap-3"
+                                                    onClick={() => openBlockEditor(block.id)}
+                                                >
+                                                    <div className="p-2 bg-zinc-900 rounded-lg text-zinc-400">
+                                                        {typeInfo ? <typeInfo.icon className="w-5 h-5" /> : <Box className="w-5 h-5" />}
+                                                    </div>
+                                                    <div>
+                                                        <p className={`text-sm font-bold ${block.visible ? 'text-white' : 'text-zinc-500 line-through'}`}>{typeInfo?.label || block.type}</p>
+                                                        <p className="text-xs text-zinc-500 truncate max-w-[150px]">{block.content.title || 'Sin Título'}</p>
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex gap-2">
+                                                    <button
+                                                        onClick={() => handleBlockVisibility(block.id, !block.visible)}
+                                                        className="p-2 bg-black/40 rounded-lg text-zinc-400 hover:text-white transition-colors"
+                                                    >
+                                                        {block.visible ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4 opacity-50" />}
+                                                    </button>
+                                                    <button
+                                                        onClick={() => deleteBlock(block.id)}
+                                                        className="p-2 bg-rose-500/10 text-rose-500 rounded-lg hover:bg-rose-500/20 transition-colors"
+                                                    >
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        )
+                                    })}
+                                </div>
+
+                                {/* Menu Add Block */}
+                                <div className="relative">
+                                    <button
+                                        onClick={() => setIsAddMenuOpen(!isAddMenuOpen)}
+                                        className="w-full py-3 mt-2 rounded-xl border border-dashed border-white/20 text-zinc-400 font-bold text-sm hover:border-orange-500/50 hover:text-orange-500 transition-colors flex items-center justify-center gap-2"
                                     >
-                                        {radiusOptions.map(r => <option key={r.id} value={r.id}>{r.label}</option>)}
-                                    </select>
+                                        <Plus className="w-4 h-4" /> Agregar Sección {isAddMenuOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                                    </button>
+
+                                    {isAddMenuOpen && (
+                                        <div className="mt-2 bg-zinc-900 border border-white/10 rounded-xl shadow-2xl p-2 grid grid-cols-2 gap-2 z-50">
+                                            {BLOCK_TYPES.map(bt => (
+                                                <button
+                                                    key={bt.id}
+                                                    onClick={() => { addBlock(bt.id); setIsAddMenuOpen(false); }}
+                                                    className="flex flex-col items-center justify-center p-3 rounded-lg bg-zinc-950/50 hover:bg-orange-500/10 hover:text-orange-400 transition-colors text-xs text-zinc-300 font-medium text-center gap-2"
+                                                >
+                                                    <bt.icon className="w-6 h-6" />
+                                                    {bt.label}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
-                            </div>
-                        </div>
 
-                        <div className="h-px bg-white/5 my-4" />
-
-                        {/* Content Blocks */}
-                        <div>
-                            <p className="flex items-center gap-2 text-xs font-semibold text-zinc-400 mb-3 uppercase tracking-wider">
-                                <LayoutTemplate className="w-3.5 h-3.5" /> Textos (Hero)
-                            </p>
-
-                            {heroBlock && (
-                                <div className="space-y-3">
-                                    <input
-                                        type="text"
-                                        value={heroBlock.content.title || ''}
-                                        onChange={(e) => handleBlockChange(heroBlock.id, 'title', e.target.value)}
-                                        placeholder="Título principal"
-                                        className="w-full bg-black/40 border border-white/5 rounded-lg p-2.5 text-sm text-white font-bold"
-                                    />
-                                    <textarea
-                                        value={heroBlock.content.subtitle || ''}
-                                        onChange={(e) => handleBlockChange(heroBlock.id, 'subtitle', e.target.value)}
-                                        placeholder="Subtítulo..."
-                                        rows={3}
-                                        className="w-full bg-black/40 border border-white/5 rounded-lg p-2.5 text-sm text-white resize-none"
-                                    />
-                                    <input
-                                        type="text"
-                                        value={heroBlock.content.image_url || ''}
-                                        onChange={(e) => handleBlockChange(heroBlock.id, 'image_url', e.target.value)}
-                                        placeholder="URL de imagen de fondo (opcional)"
-                                        className="w-full bg-black/40 border border-white/5 rounded-lg p-2.5 text-sm text-white font-mono placeholder:font-sans"
-                                    />
-                                </div>
-                            )}
-                        </div>
-
-                    </div>
-                </aside>
-
-                {/* Live Preview Pane */}
-                <main className="flex-1 bg-black/60 rounded-2xl border border-white/5 flex items-center justify-center p-4 lg:p-8 overflow-hidden backdrop-blur-sm relative">
-
-                    <div className="absolute top-4 left-4 flex items-center gap-2 bg-zinc-900 border border-white/10 rounded-full px-3 py-1 shadow-lg pointer-events-none z-10">
-                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                        <span className="text-xs font-medium text-white tracking-wide">Live Preview</span>
-                    </div>
-
-                    <div
-                        className={`
-                            bg-[#09090b] border border-white/10 shadow-2xl overflow-y-auto overflow-x-hidden transition-all duration-500 ease-[cubic-bezier(0.25,1,0.5,1)] relative
-                            ${isMobilePreview ? 'w-[375px] h-[812px] rounded-[3rem] ring-[8px] ring-zinc-800' : 'w-full h-full rounded-xl'}
-                        `}
-                        style={{ fontFamily: config.font_family }}
-                    >
-                        {/* Mobile Notch */}
-                        {isMobilePreview && (
-                            <div className="sticky top-0 w-full h-6 flex justify-center pt-2 z-50 bg-[#09090b]">
-                                <div className="w-32 h-6 bg-zinc-800 rounded-b-2xl" />
-                            </div>
-                        )}
-
-                        {/* Rendering the actual Landing Page Preview inside the container */}
-                        <div className="relative min-h-full pb-20">
-                            {/* Decorative ambient light */}
-                            <div
-                                className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[300px] blur-[100px] opacity-20 pointer-events-none"
-                                style={{ backgroundColor: config.primary_color }}
-                            ></div>
-
-                            {/* Optional Hero Banner Image */}
-                            {heroBlock?.content.image_url && (
-                                <div className="absolute top-0 left-0 w-full h-[500px] pointer-events-none overflow-hidden">
-                                    <div
-                                        className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-40 transition-all duration-700"
-                                        style={{ backgroundImage: `url(${heroBlock.content.image_url})` }}
-                                    ></div>
-                                    {/* Gradient to fade into the background color */}
-                                    <div
-                                        className="absolute inset-0"
-                                        style={{ background: `linear-gradient(to bottom, transparent 0%, transparent 40%, ${config.bg_color || '#09090b'} 100%)` }}
-                                    ></div>
-                                </div>
-                            )}
-
-                            <header className="px-6 py-5 border-b border-white/5 flex items-center justify-between relative z-10 backdrop-blur-md">
-                                <div className="font-black text-xl tracking-tight flex items-center gap-2">
-                                    <Zap className="w-5 h-5" style={{ color: config.primary_color }} />
-                                    Logo
-                                </div>
-                            </header>
-
-                            <section className="px-6 py-16 sm:py-24 text-center relative z-10">
-                                <h1 className="text-4xl sm:text-5xl font-black text-white mb-6 tracking-tight">
-                                    {heroBlock?.content.title}
-                                </h1>
-                                <p className="text-zinc-400 text-lg max-w-xl mx-auto mb-10 leading-relaxed">
-                                    {heroBlock?.content.subtitle}
-                                </p>
-
-                                {/* Mock Tracking Input Area */}
-                                <div className="max-w-md mx-auto bg-white/5 backdrop-blur-xl border border-white/10 p-6 rounded-2xl shadow-xl">
-                                    <h3 className="font-bold text-white mb-4 text-left">{trackBlock?.content.title || 'Rastrea tu moto'}</h3>
-                                    <div className="flex gap-2">
-                                        <input
-                                            disabled
-                                            placeholder="#REP-XXXXXXX"
-                                            className="flex-1 bg-black/50 border border-white/10 rounded-xl px-4 py-3 placeholder:text-zinc-600 focus:outline-none"
-                                        />
-                                        <button
-                                            className={`px-6 py-3 font-bold text-white transition-opacity hover:opacity-90 ${config.button_radius}`}
-                                            style={{ backgroundColor: config.primary_color }}
-                                        >
-                                            Buscar
-                                        </button>
-                                    </div>
-                                </div>
                             </section>
                         </div>
-                    </div>
-                </main>
+                    ) : (
+                        <div className="p-5 animate-in slide-in-from-right-4 duration-300 space-y-6">
+                            <button
+                                onClick={() => setActiveTab('main')}
+                                className="flex items-center gap-2 text-xs font-bold text-zinc-400 hover:text-white transition-colors bg-white/5 px-3 py-2 rounded-lg"
+                            >
+                                <ArrowLeft className="w-4 h-4" /> Volver a Capas
+                            </button>
 
+                            {activeBlock && (
+                                <div className="space-y-4">
+                                    <h2 className="text-lg font-black text-white capitalize flex items-center gap-3 border-b border-white/10 pb-4">
+                                        {(() => {
+                                            const TypeIcon = BLOCK_TYPES.find(t => t.id === activeBlock.type)?.icon || Box
+                                            return <TypeIcon className="w-5 h-5 text-orange-500" />
+                                        })()}
+                                        Editando: {BLOCK_TYPES.find(t => t.id === activeBlock.type)?.label || activeBlock.type}
+                                    </h2>
+
+                                    {/* BLOCK EDITOR FORMS */}
+                                    <div>
+                                        <label className="text-xs text-zinc-500 block mb-1">Título</label>
+                                        <input
+                                            value={activeBlock.content.title || ''}
+                                            onChange={(e) => handleBlockContentChange(activeBlock.id, 'title', e.target.value)}
+                                            className="w-full bg-black/40 border border-white/5 rounded-lg p-3 text-sm focus:border-orange-500/50 outline-none text-white"
+                                            placeholder="Título principal..."
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="text-xs text-zinc-500 block mb-1">Subtítulo / Texto Corto</label>
+                                        <textarea
+                                            value={activeBlock.content.subtitle || ''}
+                                            onChange={(e) => handleBlockContentChange(activeBlock.id, 'subtitle', e.target.value)}
+                                            className="w-full bg-black/40 border border-white/5 rounded-lg p-3 text-sm focus:border-orange-500/50 outline-none text-white min-h-[80px]"
+                                            placeholder="Descripción o promesa de valor..."
+                                        />
+                                    </div>
+
+                                    {(activeBlock.type === 'hero' || activeBlock.type === 'gallery') && (
+                                        <div>
+                                            <label className="text-xs text-zinc-500 block mb-1">Imagen</label>
+                                            <ImageUploader
+                                                value={activeBlock.content.image_url || ''}
+                                                onChange={(url) => handleBlockContentChange(activeBlock.id, 'image_url', url)}
+                                                folder="landing"
+                                                compact
+                                            />
+                                        </div>
+                                    )}
+
+                                    {activeBlock.type === 'contact' && (
+                                        <>
+                                            <div>
+                                                <label className="text-xs text-zinc-500 block mb-1">Dirección Física</label>
+                                                <input
+                                                    value={activeBlock.content.address || ''}
+                                                    onChange={(e) => handleBlockContentChange(activeBlock.id, 'address', e.target.value)}
+                                                    className="w-full bg-black/40 border border-white/5 rounded-lg p-3 text-sm focus:border-orange-500/50 outline-none text-white"
+                                                    placeholder="Av. Las Américas 123..."
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="text-xs text-zinc-500 block mb-1">Horario de Atención</label>
+                                                <input
+                                                    value={activeBlock.content.hours || ''}
+                                                    onChange={(e) => handleBlockContentChange(activeBlock.id, 'hours', e.target.value)}
+                                                    className="w-full bg-black/40 border border-white/5 rounded-lg p-3 text-sm focus:border-orange-500/50 outline-none text-white"
+                                                    placeholder="Lunes a Viernes de 9am a 6pm"
+                                                />
+                                            </div>
+                                        </>
+                                    )}
+
+                                    {/* DYNAMIC ARRAY EDITORS */}
+                                    {activeBlock.type === 'services' && (
+                                        <div className="pt-4 border-t border-white/5">
+                                            <div className="flex items-center justify-between mb-4">
+                                                <h3 className="text-sm font-bold text-white">Tarjetas de Servicio</h3>
+                                                <button onClick={() => addBlockArrayItem(activeBlock.id, 'items', { title: 'Nuevo Servicio', desc: 'Descripción del servicio' })} className="text-xs bg-orange-500/20 text-orange-500 px-2 py-1 rounded hover:bg-orange-500/30">
+                                                    + Añadir
+                                                </button>
+                                            </div>
+                                            <div className="space-y-4">
+                                                {(activeBlock.content.items || []).map((item: any, i: number) => (
+                                                    <div key={i} className="bg-white/5 p-3 rounded-xl relative group border border-white/5">
+                                                        <button onClick={() => deleteBlockArrayItem(activeBlock.id, 'items', i)} className="absolute top-2 right-2 text-red-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                            <Trash2 className="w-4 h-4" />
+                                                        </button>
+                                                        <input value={item.title || ''} onChange={(e) => handleBlockArrayItemChange(activeBlock.id, 'items', i, 'title', e.target.value)} className="w-full bg-transparent border-b border-white/10 p-1 mb-2 text-sm text-white focus:outline-none focus:border-orange-500 font-bold" placeholder="Título" />
+                                                        <textarea value={item.desc || ''} onChange={(e) => handleBlockArrayItemChange(activeBlock.id, 'items', i, 'desc', e.target.value)} className="w-full bg-black/20 rounded p-2 text-xs text-zinc-300 focus:outline-none min-h-[60px]" placeholder="Descripción" />
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {activeBlock.type === 'faq' && (
+                                        <div className="pt-4 border-t border-white/5">
+                                            <div className="flex items-center justify-between mb-4">
+                                                <h3 className="text-sm font-bold text-white">Preguntas</h3>
+                                                <button onClick={() => addBlockArrayItem(activeBlock.id, 'items', { q: '¿Nueva Pregunta?', a: 'Respuesta' })} className="text-xs bg-orange-500/20 text-orange-500 px-2 py-1 rounded hover:bg-orange-500/30">
+                                                    + Añadir
+                                                </button>
+                                            </div>
+                                            <div className="space-y-4">
+                                                {(activeBlock.content.items || []).map((item: any, i: number) => (
+                                                    <div key={i} className="bg-white/5 p-3 rounded-xl relative group border border-white/5">
+                                                        <button onClick={() => deleteBlockArrayItem(activeBlock.id, 'items', i)} className="absolute top-2 right-2 text-red-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                            <Trash2 className="w-4 h-4" />
+                                                        </button>
+                                                        <input value={item.q || ''} onChange={(e) => handleBlockArrayItemChange(activeBlock.id, 'items', i, 'q', e.target.value)} className="w-full bg-transparent border-b border-white/10 p-1 mb-2 text-sm text-white focus:outline-none focus:border-orange-500 font-bold" placeholder="Pregunta" />
+                                                        <textarea value={item.a || ''} onChange={(e) => handleBlockArrayItemChange(activeBlock.id, 'items', i, 'a', e.target.value)} className="w-full bg-black/20 rounded p-2 text-xs text-zinc-300 focus:outline-none min-h-[60px]" placeholder="Respuesta" />
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {activeBlock.type === 'testimonials' && (
+                                        <div className="pt-4 border-t border-white/5">
+                                            <div className="flex items-center justify-between mb-4">
+                                                <h3 className="text-sm font-bold text-white">Testimonios</h3>
+                                                <button onClick={() => addBlockArrayItem(activeBlock.id, 'items', { quote: 'Excelente excelente', author: 'Juan' })} className="text-xs bg-orange-500/20 text-orange-500 px-2 py-1 rounded hover:bg-orange-500/30">
+                                                    + Añadir
+                                                </button>
+                                            </div>
+                                            <div className="space-y-4">
+                                                {(activeBlock.content.items || []).map((item: any, i: number) => (
+                                                    <div key={i} className="bg-white/5 p-3 rounded-xl relative group border border-white/5 flex flex-col gap-2">
+                                                        <button onClick={() => deleteBlockArrayItem(activeBlock.id, 'items', i)} className="absolute top-2 right-2 text-red-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                            <Trash2 className="w-4 h-4" />
+                                                        </button>
+                                                        <textarea value={item.quote || ''} onChange={(e) => handleBlockArrayItemChange(activeBlock.id, 'items', i, 'quote', e.target.value)} className="w-full bg-black/20 rounded p-2 text-xs text-zinc-300 focus:outline-none min-h-[60px] italic" placeholder="Cita del cliente" />
+                                                        <input value={item.author || ''} onChange={(e) => handleBlockArrayItemChange(activeBlock.id, 'items', i, 'author', e.target.value)} className="w-full bg-transparent border-b border-white/10 p-1 text-sm text-white focus:outline-none focus:border-orange-500 font-bold" placeholder="Nombre (Ej. Juan)" />
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
+
+                <div className="p-5 border-t border-white/5 bg-black/20">
+                    <a href={`/t/${config.slug}`} target="_blank" className="w-full flex items-center justify-center gap-2 bg-zinc-800 hover:bg-zinc-700 text-white px-4 py-3 rounded-lg text-sm font-bold transition-all">
+                        <LinkIcon className="w-4 h-4" />
+                        Ver en Vivo
+                    </a>
+                </div>
+            </div>
+
+            {/* Panel de Preview (Derecho) */}
+            <div className="flex-1 bg-black overflow-hidden flex flex-col relative justify-center items-center p-4">
+                {/* Background Grid Pattern */}
+                <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '40px 40px' }}></div>
+
+                {/* View Toggles */}
+                <div className="absolute top-6 left-1/2 -translate-x-1/2 flex items-center gap-1 bg-zinc-900 border border-white/10 p-1 rounded-full z-30">
+                    <button
+                        onClick={() => setIsMobilePreview(false)}
+                        className={`p-2 rounded-full transition-all ${!isMobilePreview ? 'bg-zinc-800 text-white' : 'text-zinc-500 hover:text-white'}`}
+                    >
+                        <Monitor className="w-4 h-4" />
+                    </button>
+                    <button
+                        onClick={() => setIsMobilePreview(true)}
+                        className={`p-2 rounded-full transition-all ${isMobilePreview ? 'bg-zinc-800 text-white' : 'text-zinc-500 hover:text-white'}`}
+                    >
+                        <Smartphone className="w-4 h-4" />
+                    </button>
+                </div>
+
+                {/* Preview Window Wrapper */}
+                <div
+                    className={`relative overflow-hidden transition-all duration-500 shadow-2xl flex flex-col ${isMobilePreview ? 'w-[375px] h-[812px] rounded-[3rem] border-[8px] border-zinc-900 bg-black' : 'w-full max-w-5xl h-full mt-16 rounded-t-2xl border-t border-x border-white/10 bg-black'}`}
+                >
+                    {/* Device Notch/Top bar if mobile, standard browser header if desktop */}
+                    {isMobilePreview ? (
+                        <div className="h-6 w-full absolute top-0 left-0 z-50 flex justify-center">
+                            <div className="w-40 h-6 bg-zinc-900 rounded-b-3xl"></div>
+                        </div>
+                    ) : (
+                        <div className="h-10 bg-zinc-900 border-b border-white/10 flex items-center px-4 gap-2 shrink-0">
+                            <div className="w-3 h-3 rounded-full bg-rose-500/50"></div>
+                            <div className="w-3 h-3 rounded-full bg-amber-500/50"></div>
+                            <div className="w-3 h-3 rounded-full bg-emerald-500/50"></div>
+                            <div className="ml-4 bg-black/50 px-4 py-1 rounded text-[10px] font-mono text-zinc-500 border border-white/5 flex items-center gap-2">
+                                🔒 https://motofix.com/t/{config.slug}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Rendering the TRUE PAGE LIVE */}
+                    <div className="flex-1 overflow-y-auto customize-scrollbar bg-[#09090b] relative w-full h-full">
+                        <LandingClient config={config} workshop={workshop} products={products} />
+                    </div>
+                </div>
             </div>
         </div>
     )

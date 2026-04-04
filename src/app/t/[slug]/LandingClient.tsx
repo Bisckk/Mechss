@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Search, Loader2, Wrench, Clock, CheckCircle, Package, AlertTriangle, ArrowLeft, Camera, ChevronDown, MapPin, Phone, Zap } from 'lucide-react'
 import { lookupTrackingCodeAction } from '@/lib/actions/tracking'
+import { HeroBlock, TrackingBlock, EcommerceBlock, ServicesBlock, GalleryBlock, TestimonialsBlock, FaqBlock, ContactBlock } from '@/components/landing/LandingBlocks'
 
 type LandingConfig = {
     theme_preset: string
@@ -19,6 +20,16 @@ type Workshop = {
     map_url: string | null
 }
 
+type Product = {
+    id: string
+    name: string
+    description: string
+    sale_price: number
+    image_url: string | null
+    category: string
+    stock_quantity: number
+}
+
 const STATUS_STEPS = [
     { key: 'received', label: 'Recibido', icon: Package },
     { key: 'in_progress', label: 'Diagnóstico', icon: Search },
@@ -32,11 +43,61 @@ const statusLabels: Record<string, string> = {
     'delivered': 'Entregado', 'cancelled': 'Cancelado',
 }
 
-export default function LandingClient({ config, workshop }: { config: LandingConfig, workshop: Workshop }) {
+export default function LandingClient({ config, workshop, products }: { config: LandingConfig, workshop: Workshop, products: Product[] }) {
     const [code, setCode] = useState('')
     const [isSearching, setIsSearching] = useState(false)
     const [trackingData, setTrackingData] = useState<any>(null)
     const [error, setError] = useState('')
+
+    // Cart State
+    const [cart, setCart] = useState<Record<string, number>>({})
+
+    const addToCart = (productId: string) => {
+        setCart(prev => ({ ...prev, [productId]: (prev[productId] || 0) + 1 }))
+    }
+
+    const removeFromCart = (productId: string) => {
+        setCart(prev => {
+            const newCart = { ...prev }
+            if (newCart[productId] > 1) {
+                newCart[productId]--
+            } else {
+                delete newCart[productId]
+            }
+            return newCart
+        })
+    }
+
+    const totalCartItems = Object.values(cart).reduce((a, b) => a + b, 0)
+    const storeBlock = config.blocks.find(b => b.type === 'ecommerce') || { visible: true, content: { title: 'Accesorios y Repuestos', subtitle: 'Lleva tu moto al siguiente nivel.' } }
+
+    const handleWhatsAppCheckout = () => {
+        if (!workshop.phone) {
+            alert('El taller no tiene un número de WhatsApp configurado.')
+            return
+        }
+
+        let message = `Hola, quiero comprar los siguientes artículos que vi en su sitio web:\n\n`
+        let total = 0
+
+        Object.entries(cart).forEach(([id, qty]) => {
+            const product = products.find(p => p.id === id)
+            if (product) {
+                const subtotal = product.sale_price * qty
+                total += subtotal
+                message += `▪ ${qty}x ${product.name} - $${subtotal.toLocaleString()}\n`
+            }
+        })
+
+        message += `\n*Total estimado: $${total.toLocaleString()}*`
+        message += `\n\n¿Tienen disponibilidad?`
+
+        const encodedMessage = encodeURIComponent(message)
+        // Clean phone number (remove non-digits)
+        const cleanPhone = workshop.phone.replace(/\D/g, '')
+        window.open(`https://wa.me/${cleanPhone}?text=${encodedMessage}`, '_blank')
+    }
+
 
     const heroBlock = config.blocks.find(b => b.type === 'hero')
     const trackBlock = config.blocks.find(b => b.type === 'tracking')
@@ -98,76 +159,15 @@ export default function LandingClient({ config, workshop }: { config: LandingCon
                 )}
             </header>
 
-            <main className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 py-16 sm:py-24">
-
-                {/* Hero Section */}
-                {heroBlock && heroBlock.visible && !trackingData && (
-                    <section className="text-center mb-20 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                        <h1 className="text-5xl sm:text-6xl font-black text-white mb-6 tracking-tight leading-tight">
-                            {heroBlock.content.title}
-                        </h1>
-                        <p className="text-zinc-400 text-xl max-w-2xl mx-auto leading-relaxed">
-                            {heroBlock.content.subtitle}
-                        </p>
-                    </section>
-                )}
-
-                {/* Tracking Input Area */}
-                {trackBlock && trackBlock.visible && !trackingData && (
-                    <section className="max-w-2xl mx-auto animate-in fade-in slide-in-from-bottom-8 duration-700">
-                        <div className="bg-zinc-950/80 backdrop-blur-xl border border-white/10 p-8 sm:p-10 rounded-3xl shadow-2xl relative overflow-hidden">
-                            {/* Subtle internal glow */}
-                            <div className="absolute top-0 left-0 right-0 h-1" style={{ background: `linear-gradient(90deg, transparent, ${config.primary_color}, transparent)` }}></div>
-
-                            <div className="flex flex-col items-center text-center mb-8">
-                                <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-6" style={{ backgroundColor: `${config.primary_color}20` }}>
-                                    <Search className="w-8 h-8" style={{ color: config.primary_color }} />
-                                </div>
-                                <h3 className="text-2xl font-bold text-white tracking-tight mb-2">{trackBlock.content.title || 'Rastreo en Tiempo Real'}</h3>
-                                <p className="text-zinc-400 font-medium">{trackBlock.content.subtitle || 'Ingresa tu código para ver estadísticas de tu vehículo.'}</p>
-                            </div>
-
-                            <form onSubmit={handleSearch} className="relative flex flex-col sm:flex-row gap-3">
-                                <div className="relative flex-1">
-                                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                        <span className="text-zinc-500 font-mono font-bold">#</span>
-                                    </div>
-                                    <input
-                                        type="text"
-                                        value={code}
-                                        onChange={(e) => setCode(e.target.value.toUpperCase())}
-                                        placeholder="REP-XXXXXXX"
-                                        className={`w-full bg-black/60 border border-white/10 ${config.button_radius} pl-10 pr-4 py-4 text-lg font-mono font-bold text-white tracking-widest focus:outline-none transition-colores placeholder:text-zinc-700`}
-                                        style={{ outlineColor: config.primary_color }}
-                                    />
-                                </div>
-                                <button
-                                    type="submit"
-                                    disabled={isSearching || !code.trim()}
-                                    className={`px-8 py-4 font-bold text-white text-lg transition-transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2 ${config.button_radius}`}
-                                    style={{ backgroundColor: config.primary_color, boxShadow: `0 0 20px ${config.primary_color}40` }}
-                                >
-                                    {isSearching ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Buscar'}
-                                </button>
-                            </form>
-
-                            {error && (
-                                <div className="mt-4 p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 text-sm font-bold text-center animate-in fade-in">
-                                    {error}
-                                </div>
-                            )}
-                        </div>
-                    </section>
-                )}
-
-                {/* --- TRACKING RESULTS (Same as previous component, but adapted to custom colors) --- */}
-                {trackingData && (
-                    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-3xl mx-auto">
+            <main className="relative z-10 w-full pb-32">
+                {trackingData ? (
+                    /* --- TRACKING RESULTS (Isolates from normal blocks) --- */
+                    <div className="space-y-6 pt-10 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-3xl mx-auto px-4 sm:px-6">
                         <button
                             onClick={() => { setTrackingData(null); setCode('') }}
                             className="flex items-center gap-2 text-sm text-zinc-400 hover:text-white transition-colors mb-4"
                         >
-                            <ArrowLeft className="w-4 h-4" /> Volver a buscar
+                            <ArrowLeft className="w-4 h-4" /> Volver al sitio web principal
                         </button>
 
                         <div className="bg-zinc-900/60 backdrop-blur-sm border border-white/5 rounded-3xl p-6 sm:p-8 relative overflow-hidden">
@@ -188,55 +188,44 @@ export default function LandingClient({ config, workshop }: { config: LandingCon
                                     </h2>
                                     {trackingData.repair.vehicle_plate && (
                                         <span className="inline-block mt-3 bg-white/5 text-zinc-300 px-4 py-1.5 rounded-lg text-sm font-mono font-black tracking-widest border border-white/10">
-                                            Placa: {trackingData.repair.vehicle_plate.toUpperCase()}
+                                            {trackingData.repair.vehicle_plate}
                                         </span>
                                     )}
                                 </div>
                             </div>
-
-                            <div className="mt-6 flex gap-3 text-xs text-zinc-400">
-                                <div className="flex items-center gap-2">
-                                    <Clock className="w-4 h-4" /> Ingreso: {new Date(trackingData.repair.created_at).toLocaleDateString('es-ES')}
-                                </div>
-                            </div>
                         </div>
 
-                        {/* Progress */}
-                        <div className="bg-zinc-900/60 backdrop-blur-sm border border-white/5 rounded-3xl p-6 sm:p-8">
-                            <h3 className="text-sm font-bold text-zinc-400 uppercase tracking-wider mb-8">Etapa Actual</h3>
-                            <div className="flex items-center justify-between relative">
-                                <div className="absolute top-5 left-[10%] right-[10%] h-1 bg-zinc-800 rounded-full">
-                                    <div
-                                        className="h-full rounded-full transition-all duration-1000"
-                                        style={{ width: `${Math.max(0, currentStepIndex / (STATUS_STEPS.length - 1) * 100)}%`, backgroundColor: config.primary_color, boxShadow: `0 0 10px ${config.primary_color}` }}
-                                    ></div>
-                                </div>
+                        {/* STATUS STEPS */}
+                        <div className="bg-zinc-950/80 border border-white/10 rounded-3xl p-6 sm:p-8 relative">
+                            <h3 className="text-xl font-bold text-white mb-8 border-b border-white/5 pb-4">Progreso del Servicio</h3>
+                            <div className="relative">
+                                <div className="absolute top-6 left-6 right-6 h-1 bg-zinc-900 rounded-full hidden sm:block"></div>
+                                <div className="absolute top-6 left-6 h-1 rounded-full bg-orange-500 transition-all duration-1000 hidden sm:block" style={{ width: `${Math.max(0, (currentStepIndex / (STATUS_STEPS.length - 1)) * 100)}%`, backgroundColor: config.primary_color }}></div>
 
-                                {STATUS_STEPS.map((step, i) => {
-                                    const isActive = i <= currentStepIndex
-                                    const isCurrent = i === currentStepIndex
-                                    return (
-                                        <div key={step.key} className="flex flex-col items-center relative z-10" style={{ width: `${100 / STATUS_STEPS.length}%` }}>
-                                            <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-500 ${isCurrent ? 'scale-110' : ''}`}
-                                                style={{ backgroundColor: isCurrent ? config.primary_color : isActive ? `${config.primary_color}AA` : '#27272a', border: `1px solid ${isActive ? 'transparent' : '#3f3f46'}` }}
-                                            >
-                                                <step.icon className={`w-5 h-5 ${isActive ? (isCurrent ? 'text-black' : 'text-zinc-900') : 'text-zinc-600'}`} />
+                                <div className="flex flex-col sm:flex-row justify-between relative gap-6 sm:gap-0">
+                                    {STATUS_STEPS.map((step, idx) => {
+                                        const isCompleted = currentStepIndex >= idx
+                                        const isCurrent = currentStepIndex === idx
+                                        const Icon = step.icon
+
+                                        return (
+                                            <div key={idx} className="flex sm:flex-col items-center gap-4 sm:gap-3 relative">
+                                                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 border-2 transition-all duration-500 ${isCompleted ? 'bg-orange-500 border-orange-500 text-white' : 'bg-zinc-900 border-zinc-800 text-zinc-500'}`} style={{ backgroundColor: isCompleted ? config.primary_color : '', borderColor: isCompleted ? config.primary_color : '' }}>
+                                                    <Icon className="w-5 h-5" />
+                                                </div>
+                                                <div className="sm:text-center">
+                                                    <p className={`font-bold text-sm ${isCompleted ? 'text-white' : 'text-zinc-500'}`}>{step.label}</p>
+                                                    {isCurrent && <p className="text-xs text-orange-400 mt-1 animate-pulse" style={{ color: config.primary_color }}>Tu moto está aquí</p>}
+                                                </div>
                                             </div>
-                                            <p className={`text-xs font-bold mt-3 text-center ${isCurrent ? 'text-white' : isActive ? 'text-zinc-300' : 'text-zinc-600'}`}>
-                                                {step.label}
-                                            </p>
-                                        </div>
-                                    )
-                                })}
+                                        )
+                                    })}
+                                </div>
                             </div>
                         </div>
 
-                        {/* Updates Log */}
-                        <div className="bg-zinc-900/60 backdrop-blur-sm border border-white/5 rounded-3xl p-6 sm:p-8">
-                            <h3 className="text-sm font-bold text-zinc-400 uppercase tracking-wider mb-6 flex items-center gap-2">
-                                <Clock className="w-4 h-4" /> Bitácora de Procesos
-                            </h3>
-
+                        <div className="bg-zinc-950/80 border border-white/10 rounded-3xl p-6 sm:p-8">
+                            <h3 className="text-xl font-bold text-white mb-6 border-b border-white/5 pb-4">Historial de Actualizaciones</h3>
                             <div className="space-y-6">
                                 {trackingData.updates.map((upd: any, idx: number) => {
                                     const date = new Date(upd.created_at)
@@ -277,8 +266,65 @@ export default function LandingClient({ config, workshop }: { config: LandingCon
                         </div>
 
                     </div>
+                ) : (
+                    /* --- DYNAMIC BLOCK RENDERER --- */
+                    <div className="w-full flex flex-col gap-12 sm:gap-24 pt-16 px-4">
+                        {config.blocks.filter(b => b.visible).map((block) => {
+                            switch (block.type) {
+                                case 'hero': return <HeroBlock key={block.id} block={block} config={config} />;
+                                case 'tracking': return <TrackingBlock key={block.id} block={block} config={config} code={code} setCode={setCode} handleSearch={handleSearch} isSearching={isSearching} error={error} />;
+                                case 'ecommerce': return <EcommerceBlock key={block.id} block={block} config={config} products={products} cart={cart} addToCart={addToCart} removeFromCart={removeFromCart} />;
+                                case 'services': return <ServicesBlock key={block.id} block={block} config={config} />;
+                                case 'gallery': return <GalleryBlock key={block.id} block={block} config={config} />;
+                                case 'testimonials': return <TestimonialsBlock key={block.id} block={block} config={config} />;
+                                case 'faq': return <FaqBlock key={block.id} block={block} config={config} />;
+                                case 'contact': return <ContactBlock key={block.id} block={block} config={config} />;
+                                default: return null;
+                            }
+                        })}
+                    </div>
                 )}
             </main>
+
+            {/* Floating Checkout CTA */}
+            {totalCartItems > 0 && (
+                <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom-10 fade-in duration-300">
+                    <button
+                        onClick={handleWhatsAppCheckout}
+                        className="flex items-center gap-3 bg-zinc-950 border border-white/20 text-white px-6 py-4 rounded-full shadow-2xl hover:shadow-emerald-500/20 hover:border-emerald-500/50 transition-all group"
+                    >
+                        <div className="flex -space-x-2">
+                            {Object.entries(cart).slice(0, 3).map(([id, _]) => {
+                                const product = products.find(p => p.id === id)
+                                if (!product) return null
+                                return (
+                                    <div key={id} className="w-8 h-8 rounded-full border-2 border-zinc-950 bg-zinc-800 overflow-hidden flex items-center justify-center">
+                                        {product.image_url ? (
+                                            <img src={product.image_url} className="w-full h-full object-cover" />
+                                        ) : (
+                                            <Package className="w-4 h-4 opacity-50" />
+                                        )}
+                                    </div>
+                                )
+                            })}
+                            {Object.keys(cart).length > 3 && (
+                                <div className="w-8 h-8 rounded-full border-2 border-zinc-950 bg-zinc-800 flex items-center justify-center text-[10px] font-bold">
+                                    +{Object.keys(cart).length - 3}
+                                </div>
+                            )}
+                        </div>
+                        <div className="flex flex-col items-start mr-2">
+                            <span className="text-xs font-bold text-zinc-400 uppercase tracking-widest">{totalCartItems} {totalCartItems === 1 ? 'Artículo' : 'Artículos'}</span>
+                            <span className="text-sm font-black text-emerald-400 group-hover:text-emerald-300 transition-colors">Pedir por WhatsApp</span>
+                        </div>
+                        <div className="w-10 h-10 rounded-full bg-emerald-500 text-black flex items-center justify-center shadow-lg shadow-emerald-500/40">
+                            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+                            </svg>
+                        </div>
+                    </button>
+                </div>
+            )}
         </div>
     )
 }
