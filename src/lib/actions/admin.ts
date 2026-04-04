@@ -433,3 +433,121 @@ export async function updateAppointmentAction(
         return { ok: false, error: e.message || 'Error al actualizar cita' }
     }
 }
+
+// ── Workshop / Taller Actions ──────────────────────────────
+
+// Get all active repairs (not delivered/cancelled) for the workshop
+export async function getActiveRepairsAction(): Promise<ActionResult<any[]>> {
+    try {
+        const { supabase, workshopId } = await getWorkshopId()
+
+        const { data, error } = await supabase
+            .from('repairs')
+            .select(`
+                id, tracking_code, status, reported_issue, created_at,
+                estimated_completion, estimated_cost, vehicle_brand, vehicle_model,
+                vehicle_year, vehicle_plate, vehicle_id,
+                clients:client_id ( id, full_name, phone )
+            `)
+            .eq('workshop_id', workshopId)
+            .not('status', 'in', '("delivered","cancelled")')
+            .order('created_at', { ascending: false })
+
+        if (error) return { ok: false, error: error.message }
+        return { ok: true, data: data || [] }
+    } catch (e: any) {
+        return { ok: false, error: e.message }
+    }
+}
+
+// Update the status of a repair order
+export async function updateRepairStatusAction(
+    repairId: string,
+    newStatus: string
+): Promise<ActionResult<null>> {
+    try {
+        const { supabase, userId } = await getWorkshopId()
+
+        const { error } = await (supabase.from('repairs') as any)
+            .update({ status: newStatus })
+            .eq('id', repairId)
+
+        if (error) return { ok: false, error: error.message }
+
+        // Log the status change in repair_updates
+        await supabase.from('repair_updates').insert({
+            repair_id: repairId,
+            user_id: userId,
+            status: newStatus,
+            notes: `Estado actualizado a: ${newStatus}`,
+            photos: [],
+            is_client_visible: true
+        } as any)
+
+        revalidatePath('/admin/taller')
+        return { ok: true, data: null }
+    } catch (e: any) {
+        return { ok: false, error: e.message }
+    }
+}
+
+// Get all updates/logs for a specific repair
+export async function getRepairUpdatesAction(
+    repairId: string
+): Promise<ActionResult<any[]>> {
+    try {
+        const { supabase } = await getAuthClient()
+
+        const { data, error } = await supabase
+            .from('repair_updates')
+            .select('id, status, notes, photos, is_client_visible, created_at')
+            .eq('repair_id', repairId)
+            .order('created_at', { ascending: false })
+
+        if (error) return { ok: false, error: error.message }
+        return { ok: true, data: data || [] }
+    } catch (e: any) {
+        return { ok: false, error: e.message }
+    }
+}
+
+// Create a new update/log entry for a repair (mechanic's log)
+export async function createRepairUpdateAction(
+    repairId: string,
+    notes: string,
+    photos: string[],
+    isClientVisible: boolean = true
+): Promise<ActionResult<{ id: string }>> {
+    try {
+        const { supabase, userId } = await getWorkshopId()
+
+        // Get current repair status
+        const { data: repair } = await supabase
+            .from('repairs')
+            .select('status')
+            .eq('id', repairId)
+            .single()
+
+        const currentStatus = (repair as any)?.status || 'in_progress'
+
+        const { data, error } = await supabase
+            .from('repair_updates')
+            .insert({
+                repair_id: repairId,
+                user_id: userId,
+                status: currentStatus,
+                notes,
+                photos: photos || [],
+                is_client_visible: isClientVisible
+            } as any)
+            .select('id')
+            .single()
+
+        if (error) return { ok: false, error: error.message }
+
+        revalidatePath('/admin/taller')
+        return { ok: true, data: { id: (data as any).id } }
+    } catch (e: any) {
+        return { ok: false, error: e.message || 'Error al crear actualización' }
+    }
+}

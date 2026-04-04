@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { X, User, Car, CalendarIcon, PenLine, Plus, Phone, Mail, FileText, Loader2, Thermometer, Zap } from 'lucide-react'
 import { getClientVehiclesAction } from '@/lib/actions/admin'
 import VehicleHistoryModal from './VehicleHistoryModal'
+import AddVehicleModal from './AddVehicleModal'
 
 type DbClient = {
     id: string;
@@ -33,6 +34,7 @@ export default function ClientDetailsDrawer({ isOpen, onClose, client }: ClientD
     const [vehicles, setVehicles] = useState<DbVehicle[]>([])
     const [isLoadingVehicles, setIsLoadingVehicles] = useState(false)
     const [selectedVehicleHistory, setSelectedVehicleHistory] = useState<DbVehicle | null>(null)
+    const [showAddVehicle, setShowAddVehicle] = useState(false)
 
     useEffect(() => {
         if (isOpen && client) {
@@ -138,7 +140,10 @@ export default function ClientDetailsDrawer({ isOpen, onClose, client }: ClientD
                                     </h3>
                                     <p className="text-xs text-zinc-500 mt-1">Motos registradas en el taller para este cliente</p>
                                 </div>
-                                <button className="flex items-center gap-2 bg-zinc-900 hover:bg-orange-600 hover:text-white hover:border-orange-500 text-orange-500 px-4 py-2 rounded-xl text-sm font-bold transition-all border border-orange-500/30 group shadow-[0_0_10px_rgba(249,115,22,0.1)] hover:shadow-[0_0_20px_rgba(249,115,22,0.3)]">
+                                <button
+                                    onClick={() => setShowAddVehicle(true)}
+                                    className="flex items-center gap-2 bg-zinc-900 hover:bg-orange-600 hover:text-white hover:border-orange-500 text-orange-500 px-4 py-2 rounded-xl text-sm font-bold transition-all border border-orange-500/30 group shadow-[0_0_10px_rgba(249,115,22,0.1)] hover:shadow-[0_0_20px_rgba(249,115,22,0.3)]"
+                                >
                                     <Plus className="w-4 h-4 group-hover:rotate-90 transition-transform" />
                                     <span className="hidden sm:inline">Añadir Vehículo</span>
                                     <span className="sm:hidden">Nuevo</span>
@@ -193,7 +198,10 @@ export default function ClientDetailsDrawer({ isOpen, onClose, client }: ClientD
                                     </div>
                                     <h4 className="text-lg font-bold text-white mb-2">Sin vehículos registrados</h4>
                                     <p className="text-sm text-zinc-400 mb-6 max-w-sm mx-auto leading-relaxed">Este cliente aún no tiene ninguna flota. Comienza agregando su primer vehículo.</p>
-                                    <button className="text-orange-500 text-sm font-bold bg-orange-500/10 hover:bg-orange-500 hover:text-white px-6 py-2.5 rounded-xl transition-all border border-orange-500/20 items-center justify-center gap-2 inline-flex shadow-[0_0_15px_rgba(249,115,22,0.1)]">
+                                    <button
+                                        onClick={() => setShowAddVehicle(true)}
+                                        className="text-orange-500 text-sm font-bold bg-orange-500/10 hover:bg-orange-500 hover:text-white px-6 py-2.5 rounded-xl transition-all border border-orange-500/20 items-center justify-center gap-2 inline-flex shadow-[0_0_15px_rgba(249,115,22,0.1)]"
+                                    >
                                         <Plus className="w-4 h-4" /> Registrar Primer Vehículo
                                     </button>
                                 </div>
@@ -210,6 +218,14 @@ export default function ClientDetailsDrawer({ isOpen, onClose, client }: ClientD
                 onClose={() => setSelectedVehicleHistory(null)}
                 vehicle={selectedVehicleHistory}
                 clientId={client.id}
+            />
+
+            {/* Add Vehicle Sub-Modal */}
+            <AddVehicleModal
+                isOpen={showAddVehicle}
+                onClose={() => setShowAddVehicle(false)}
+                clientId={client.id}
+                onSuccess={loadVehicles}
             />
         </div>
     )

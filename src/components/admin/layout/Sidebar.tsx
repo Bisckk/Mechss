@@ -29,6 +29,7 @@ const NAV = [
         items: [
             { href: '/admin/dashboard', label: 'Dashboard', Icon: LayoutDashboard },
             { href: '/admin/agenda', label: 'Agenda & Citas', Icon: CalendarRange },
+            { href: '/admin/taller', label: 'Taller Activo', Icon: Wrench },
         ],
     },
     {
