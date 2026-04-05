@@ -16,6 +16,8 @@ export interface LandingPageConfig {
     primary_color: string
     bg_color: string
     blocks: any[]
+    logo_url: string | null
+    cover_url: string | null
     meta_title: string | null
     meta_description: string | null
 }

@@ -17,19 +17,25 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     const { data: config } = await supabaseAdmin
         .from('workshop_landing_pages')
         .select(`
-            meta_title, meta_description, 
-            workshops (name, logo_url)
+            meta_title, meta_description, logo_url,
+            workshops (name)
         `)
         .eq('slug', slug)
-        .eq('is_published', true)
         .single()
 
     const configAny = config as any
     const w = configAny?.workshops
+    const logoUrl: string | null = configAny?.logo_url ?? null
 
     return {
         title: configAny?.meta_title || `${w?.name || 'Taller'} | Servicio Automotriz`,
         description: configAny?.meta_description || `Página oficial de ${w?.name || 'nuestro taller'}. Consulta el estado de tu vehículo en tiempo real.`,
+        ...(logoUrl && {
+            icons: {
+                icon: logoUrl,
+                apple: logoUrl,
+            },
+        }),
     }
 }
 
@@ -42,6 +48,7 @@ export default async function PublicLandingPage({ params }: { params: Promise<{ 
         .from('workshop_landing_pages')
         .select(`
             id, theme_preset, font_family, button_radius, primary_color, bg_color, blocks, slug, workshop_id,
+            logo_url, cover_url,
             workshops (name, phone)
         `)
         .eq('slug', slug)

@@ -1,11 +1,18 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Monitor, Smartphone, LayoutTemplate, Palette, Type, Save, Link as LinkIcon, Eye, EyeOff, Zap, Loader2, Shapes, ChevronUp, ChevronDown, Rocket, Search, ShoppingCart, Wrench, Image as ImageIcon, Star, MessageCircleQuestion, MapPin, Plus, Pipette, ArrowLeft, Trash2, Box } from 'lucide-react'
+import { useState, useEffect, useCallback } from 'react'
+import { Monitor, Smartphone, LayoutTemplate, Palette, Type, Save, Link as LinkIcon, Eye, EyeOff, Zap, Loader2, Shapes, ChevronUp, ChevronDown, Rocket, Search, ShoppingCart, Wrench, Image as ImageIcon, Star, MessageCircleQuestion, MapPin, Plus, Pipette, ArrowLeft, Trash2, Box, CheckCircle2, XCircle } from 'lucide-react'
 import { getLandingPageConfigAction, updateLandingPageConfigAction, LandingPageConfig } from '@/lib/actions/builder'
 import ImageUploader from '@/components/ui/ImageUploader'
 
 import LandingClient from '@/app/t/[slug]/LandingClient'
+
+type ToastType = 'success' | 'error'
+interface Toast {
+    id: number
+    type: ToastType
+    message: string
+}
 
 export default function BuilderClient({ initialConfig, workshop, products }: { initialConfig?: LandingPageConfig | null, workshop: any, products: any[] }) {
     const [config, setConfig] = useState<LandingPageConfig | null>(initialConfig || null)
@@ -13,6 +20,13 @@ export default function BuilderClient({ initialConfig, workshop, products }: { i
     const [isSaving, setIsSaving] = useState(false)
     const [isMobilePreview, setIsMobilePreview] = useState(false)
     const [error, setError] = useState('')
+    const [toasts, setToasts] = useState<Toast[]>([])
+
+    const showToast = useCallback((type: ToastType, message: string) => {
+        const id = Date.now()
+        setToasts(prev => [...prev, { id, type, message }])
+        setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 4000)
+    }, [])
 
     // Fonts supported by Tailwind/Google Fonts that we'll inject via style or rely on global CSS
     const fontOptions = [
@@ -114,9 +128,9 @@ export default function BuilderClient({ initialConfig, workshop, products }: { i
         setIsSaving(true)
         const res = await updateLandingPageConfigAction(config)
         if (res.ok) {
-            alert('¡Configuración guardada con éxito!')
+            showToast('success', '¡Landing page guardada con éxito!')
         } else {
-            alert(`Error al guardar: ${res.error}`)
+            showToast('error', `Error al guardar: ${res.error}`)
         }
         setIsSaving(false)
     }
@@ -181,6 +195,33 @@ export default function BuilderClient({ initialConfig, workshop, products }: { i
 
     return (
         <div className="flex h-[calc(100vh-4rem)] bg-zinc-950 overflow-hidden text-white font-sans animate-in fade-in duration-500">
+
+            {/* Toast Notifications */}
+            <div className="fixed top-6 right-6 z-[9999] flex flex-col gap-3 pointer-events-none">
+                {toasts.map(toast => (
+                    <div
+                        key={toast.id}
+                        className={`flex items-center gap-3 px-5 py-4 rounded-2xl shadow-2xl backdrop-blur-xl border pointer-events-auto
+                            animate-in slide-in-from-right-4 fade-in duration-300
+                            ${toast.type === 'success'
+                                ? 'bg-emerald-950/90 border-emerald-500/30 text-emerald-100 shadow-emerald-900/40'
+                                : 'bg-rose-950/90 border-rose-500/30 text-rose-100 shadow-rose-900/40'
+                            }`}
+                        style={{ minWidth: 280 }}
+                    >
+                        {toast.type === 'success'
+                            ? <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+                            : <XCircle className="w-5 h-5 text-rose-400 shrink-0" />
+                        }
+                        <p className="text-sm font-semibold leading-snug">{toast.message}</p>
+                        <div
+                            className={`absolute bottom-0 left-0 h-0.5 rounded-full animate-[shrink_4s_linear_forwards]
+                                ${toast.type === 'success' ? 'bg-emerald-400/60' : 'bg-rose-400/60'}`}
+                            style={{ width: '100%' }}
+                        />
+                    </div>
+                ))}
+            </div>
 
             {/* Panel de Controles (Izquierdo) */}
             <div className="w-[380px] bg-zinc-900 border-r border-white/5 flex flex-col h-full shrink-0 relative z-20 shadow-2xl">
@@ -250,6 +291,30 @@ export default function BuilderClient({ initialConfig, workshop, products }: { i
                                             </button>
                                         ))}
                                     </div>
+                                </div>
+
+                                {/* Logo */}
+                                <div>
+                                    <label className="text-xs font-semibold text-zinc-400 block mb-2">Logo del Taller</label>
+                                    <p className="text-[11px] text-zinc-600 mb-2">Se muestra en la cabecera de la landing page.</p>
+                                    <ImageUploader
+                                        value={config.logo_url || ''}
+                                        onChange={(url) => handleChange('logo_url', url)}
+                                        folder="landing"
+                                        compact
+                                    />
+                                </div>
+
+                                {/* Cover / Banner */}
+                                <div>
+                                    <label className="text-xs font-semibold text-zinc-400 block mb-2">Imagen de Portada</label>
+                                    <p className="text-[11px] text-zinc-600 mb-2">Banner principal que aparece en la parte superior de la página.</p>
+                                    <ImageUploader
+                                        value={config.cover_url || ''}
+                                        onChange={(url) => handleChange('cover_url', url)}
+                                        folder="landing"
+                                        compact
+                                    />
                                 </div>
 
                                 {/* Tipografía */}
@@ -500,49 +565,59 @@ export default function BuilderClient({ initialConfig, workshop, products }: { i
             </div>
 
             {/* Panel de Preview (Derecho) */}
-            <div className="flex-1 bg-black overflow-hidden flex flex-col relative justify-center items-center p-4">
+            <div className="flex-1 bg-black overflow-hidden flex flex-col relative">
                 {/* Background Grid Pattern */}
                 <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '40px 40px' }}></div>
 
-                {/* View Toggles */}
-                <div className="absolute top-6 left-1/2 -translate-x-1/2 flex items-center gap-1 bg-zinc-900 border border-white/10 p-1 rounded-full z-30">
-                    <button
-                        onClick={() => setIsMobilePreview(false)}
-                        className={`p-2 rounded-full transition-all ${!isMobilePreview ? 'bg-zinc-800 text-white' : 'text-zinc-500 hover:text-white'}`}
-                    >
-                        <Monitor className="w-4 h-4" />
-                    </button>
-                    <button
-                        onClick={() => setIsMobilePreview(true)}
-                        className={`p-2 rounded-full transition-all ${isMobilePreview ? 'bg-zinc-800 text-white' : 'text-zinc-500 hover:text-white'}`}
-                    >
-                        <Smartphone className="w-4 h-4" />
-                    </button>
+                {/* Barra de Toggles — fuera del frame, no interfiere */}
+                <div className="relative z-30 shrink-0 flex items-center justify-center py-3 border-b border-white/5 bg-black/40 backdrop-blur-md">
+                    <div className="flex items-center gap-1 bg-zinc-900 border border-white/10 p-1 rounded-full">
+                        <button
+                            onClick={() => setIsMobilePreview(false)}
+                            className={`flex items-center gap-2 px-4 py-1.5 rounded-full transition-all text-xs font-semibold ${!isMobilePreview ? 'bg-zinc-700 text-white shadow-inner' : 'text-zinc-500 hover:text-white'}`}
+                        >
+                            <Monitor className="w-3.5 h-3.5" />
+                            Desktop
+                        </button>
+                        <button
+                            onClick={() => setIsMobilePreview(true)}
+                            className={`flex items-center gap-2 px-4 py-1.5 rounded-full transition-all text-xs font-semibold ${isMobilePreview ? 'bg-orange-500/20 text-orange-400' : 'text-zinc-500 hover:text-white'}`}
+                        >
+                            <Smartphone className="w-3.5 h-3.5" />
+                            Mobile
+                            {isMobilePreview && <span className="text-[9px] bg-orange-500/30 text-orange-300 px-1.5 py-0.5 rounded-full font-bold tracking-wide">FIRST</span>}
+                        </button>
+                    </div>
                 </div>
 
                 {/* Preview Window Wrapper */}
-                <div
-                    className={`relative overflow-hidden transition-all duration-500 shadow-2xl flex flex-col ${isMobilePreview ? 'w-[375px] h-[812px] rounded-[3rem] border-[8px] border-zinc-900 bg-black' : 'w-full max-w-5xl h-full mt-16 rounded-t-2xl border-t border-x border-white/10 bg-black'}`}
-                >
-                    {/* Device Notch/Top bar if mobile, standard browser header if desktop */}
-                    {isMobilePreview ? (
-                        <div className="h-6 w-full absolute top-0 left-0 z-50 flex justify-center">
-                            <div className="w-40 h-6 bg-zinc-900 rounded-b-3xl"></div>
-                        </div>
-                    ) : (
-                        <div className="h-10 bg-zinc-900 border-b border-white/10 flex items-center px-4 gap-2 shrink-0">
-                            <div className="w-3 h-3 rounded-full bg-rose-500/50"></div>
-                            <div className="w-3 h-3 rounded-full bg-amber-500/50"></div>
-                            <div className="w-3 h-3 rounded-full bg-emerald-500/50"></div>
-                            <div className="ml-4 bg-black/50 px-4 py-1 rounded text-[10px] font-mono text-zinc-500 border border-white/5 flex items-center gap-2">
-                                🔒 https://motofix.com/t/{config.slug}
+                <div className={`flex-1 overflow-hidden flex items-center justify-center transition-all duration-300 ${isMobilePreview ? 'py-6 px-4' : 'p-0'}`}>
+                    <div
+                        className={`relative overflow-hidden transition-all duration-500 shadow-2xl flex flex-col ${isMobilePreview
+                            ? 'w-[375px] h-full max-h-[780px] rounded-[3rem] border-[8px] border-zinc-800 bg-black'
+                            : 'w-full h-full rounded-none border-0 bg-black'
+                        }`}
+                    >
+                        {/* Device chrome */}
+                        {isMobilePreview ? (
+                            <div className="h-7 w-full shrink-0 flex justify-center items-end pb-1 bg-zinc-900/80">
+                                <div className="w-24 h-4 bg-zinc-950 rounded-full"></div>
                             </div>
-                        </div>
-                    )}
+                        ) : (
+                            <div className="h-10 bg-zinc-900 border-b border-white/10 flex items-center px-4 gap-2 shrink-0">
+                                <div className="w-3 h-3 rounded-full bg-rose-500/50"></div>
+                                <div className="w-3 h-3 rounded-full bg-amber-500/50"></div>
+                                <div className="w-3 h-3 rounded-full bg-emerald-500/50"></div>
+                                <div className="ml-4 bg-black/50 px-4 py-1 rounded text-[10px] font-mono text-zinc-500 border border-white/5 flex items-center gap-2">
+                                    🔒 mechss.com/t/{config.slug}
+                                </div>
+                            </div>
+                        )}
 
-                    {/* Rendering the TRUE PAGE LIVE */}
-                    <div className="flex-1 overflow-y-auto customize-scrollbar bg-[#09090b] relative w-full h-full">
-                        <LandingClient config={config} workshop={workshop} products={products} />
+                        {/* Rendering the TRUE PAGE LIVE */}
+                        <div className="flex-1 overflow-y-auto customize-scrollbar bg-[#09090b] relative w-full">
+                            <LandingClient config={config} workshop={workshop} products={products} mobile={isMobilePreview} />
+                        </div>
                     </div>
                 </div>
             </div>

@@ -12,6 +12,8 @@ type LandingConfig = {
     primary_color: string
     bg_color: string
     blocks: any[]
+    logo_url?: string | null
+    cover_url?: string | null
 }
 
 type Workshop = {
@@ -43,7 +45,7 @@ const statusLabels: Record<string, string> = {
     'delivered': 'Entregado', 'cancelled': 'Cancelado',
 }
 
-export default function LandingClient({ config, workshop, products }: { config: LandingConfig, workshop: Workshop, products: Product[] }) {
+export default function LandingClient({ config, workshop, products, mobile }: { config: LandingConfig, workshop: Workshop, products: Product[], mobile?: boolean }) {
     const [code, setCode] = useState('')
     const [isSearching, setIsSearching] = useState(false)
     const [trackingData, setTrackingData] = useState<any>(null)
@@ -127,42 +129,57 @@ export default function LandingClient({ config, workshop, products }: { config: 
         >
             {/* Ambient Base Light */}
             <div
-                className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[600px] blur-[150px] opacity-10 pointer-events-none"
+                className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[500px] blur-[120px] opacity-10 pointer-events-none"
                 style={{ backgroundColor: config.primary_color }}
             ></div>
 
-            {/* Optional Hero Banner Image */}
-            {heroBlock?.content.image_url && (
-                <div className="absolute top-0 left-0 w-full h-[500px] sm:h-[600px] pointer-events-none overflow-hidden">
-                    <div
-                        className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-40 transition-all duration-700"
-                        style={{ backgroundImage: `url(${heroBlock.content.image_url})` }}
-                    ></div>
-                    {/* Gradient to fade into the background color */}
+            {/* Cover / Banner Image */}
+            {config.cover_url && (
+                <div className={`relative w-full overflow-hidden shrink-0 ${mobile ? 'h-44' : 'h-44 sm:h-72'}`}>
+                    <img
+                        src={config.cover_url}
+                        alt="Portada"
+                        className="w-full h-full object-cover"
+                    />
                     <div
                         className="absolute inset-0"
-                        style={{ background: `linear-gradient(to bottom, transparent 0%, transparent 40%, ${config.bg_color || '#09090b'} 100%)` }}
-                    ></div>
+                        style={{ background: `linear-gradient(to bottom, rgba(0,0,0,0.3) 0%, ${config.bg_color || '#09090b'} 100%)` }}
+                    />
                 </div>
             )}
 
             {/* Header */}
-            <header className="px-6 py-6 border-b border-white/5 relative z-10 backdrop-blur-md max-w-5xl mx-auto flex items-center justify-between">
-                <div className="font-black text-2xl tracking-tight flex items-center gap-3">
-                    <Zap className="w-6 h-6" style={{ color: config.primary_color }} />
-                    {workshop.name}
+            <header className={`px-4 py-3 border-b border-white/5 relative z-10 backdrop-blur-md flex items-center justify-between gap-3 ${config.cover_url ? '-mt-14 sm:-mt-16' : ''}`}>
+                <div className={`font-black tracking-tight flex items-center gap-2 min-w-0 ${mobile ? 'text-base' : 'text-base sm:text-xl'}`}>
+                    {config.logo_url ? (
+                        <img
+                            src={config.logo_url}
+                            alt={workshop.name}
+                            className={`object-contain shrink-0 ${mobile ? 'h-8 max-w-[120px]' : 'h-8 sm:h-10 max-w-[140px]'}`}
+                        />
+                    ) : (
+                        <>
+                            <Zap className="w-5 h-5 shrink-0" style={{ color: config.primary_color }} />
+                            <span className="truncate">{workshop.name}</span>
+                        </>
+                    )}
                 </div>
                 {workshop.phone && (
-                    <div className="text-zinc-400 text-sm flex items-center gap-2 font-medium">
-                        <Phone className="w-4 h-4" /> {workshop.phone}
-                    </div>
+                    <a
+                        href={`tel:${workshop.phone}`}
+                        className={`text-zinc-400 flex items-center gap-1.5 font-medium shrink-0 hover:text-white transition-colors ${mobile ? 'text-xs' : 'text-xs sm:text-sm'}`}
+                    >
+                        <Phone className="w-3.5 h-3.5" />
+                        <span className={mobile ? 'hidden' : 'hidden sm:inline'}>{workshop.phone}</span>
+                        <span className={mobile ? 'inline' : 'inline sm:hidden'}>Llamar</span>
+                    </a>
                 )}
             </header>
 
             <main className="relative z-10 w-full pb-32">
                 {trackingData ? (
                     /* --- TRACKING RESULTS (Isolates from normal blocks) --- */
-                    <div className="space-y-6 pt-10 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-3xl mx-auto px-4 sm:px-6">
+                    <div className="space-y-6 pt-8 animate-in fade-in slide-in-from-bottom-4 duration-500 w-full px-4">
                         <button
                             onClick={() => { setTrackingData(null); setCode('') }}
                             className="flex items-center gap-2 text-sm text-zinc-400 hover:text-white transition-colors mb-4"
@@ -268,17 +285,18 @@ export default function LandingClient({ config, workshop, products }: { config: 
                     </div>
                 ) : (
                     /* --- DYNAMIC BLOCK RENDERER --- */
-                    <div className="w-full flex flex-col gap-12 sm:gap-24 pt-16 px-4">
+                    <div className={`w-full flex flex-col pt-10 ${mobile ? 'gap-12' : 'gap-12 sm:gap-20'}`}>
                         {config.blocks.filter(b => b.visible).map((block) => {
+                            const p = { block, config, mobile }
                             switch (block.type) {
-                                case 'hero': return <HeroBlock key={block.id} block={block} config={config} />;
-                                case 'tracking': return <TrackingBlock key={block.id} block={block} config={config} code={code} setCode={setCode} handleSearch={handleSearch} isSearching={isSearching} error={error} />;
-                                case 'ecommerce': return <EcommerceBlock key={block.id} block={block} config={config} products={products} cart={cart} addToCart={addToCart} removeFromCart={removeFromCart} />;
-                                case 'services': return <ServicesBlock key={block.id} block={block} config={config} />;
-                                case 'gallery': return <GalleryBlock key={block.id} block={block} config={config} />;
-                                case 'testimonials': return <TestimonialsBlock key={block.id} block={block} config={config} />;
-                                case 'faq': return <FaqBlock key={block.id} block={block} config={config} />;
-                                case 'contact': return <ContactBlock key={block.id} block={block} config={config} />;
+                                case 'hero': return <HeroBlock key={block.id} {...p} />;
+                                case 'tracking': return <TrackingBlock key={block.id} {...p} code={code} setCode={setCode} handleSearch={handleSearch} isSearching={isSearching} error={error} />;
+                                case 'ecommerce': return <EcommerceBlock key={block.id} {...p} products={products} cart={cart} addToCart={addToCart} removeFromCart={removeFromCart} />;
+                                case 'services': return <ServicesBlock key={block.id} {...p} />;
+                                case 'gallery': return <GalleryBlock key={block.id} {...p} />;
+                                case 'testimonials': return <TestimonialsBlock key={block.id} {...p} />;
+                                case 'faq': return <FaqBlock key={block.id} {...p} />;
+                                case 'contact': return <ContactBlock key={block.id} {...p} />;
                                 default: return null;
                             }
                         })}
