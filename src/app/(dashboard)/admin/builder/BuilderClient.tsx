@@ -616,7 +616,7 @@ export default function BuilderClient({ initialConfig, workshop, products }: { i
 
                         {/* Rendering the TRUE PAGE LIVE */}
                         <div className="flex-1 overflow-y-auto customize-scrollbar bg-[#09090b] relative w-full">
-                            <LandingClient config={config} workshop={workshop} products={products} mobile={isMobilePreview} />
+                            <LandingClient config={config} workshop={workshop} products={products} mobile={isMobilePreview} preview={true} />
                         </div>
                     </div>
                 </div>

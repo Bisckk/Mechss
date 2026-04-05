@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Search, Loader2, Wrench, Clock, CheckCircle, Package, AlertTriangle, ArrowLeft, Camera, ChevronDown, MapPin, Phone, Zap } from 'lucide-react'
 import { lookupTrackingCodeAction } from '@/lib/actions/tracking'
 import { HeroBlock, TrackingBlock, EcommerceBlock, ServicesBlock, GalleryBlock, TestimonialsBlock, FaqBlock, ContactBlock } from '@/components/landing/LandingBlocks'
+import LandingFooter from '@/components/landing/LandingFooter'
 
 type LandingConfig = {
     theme_preset: string
@@ -45,7 +46,7 @@ const statusLabels: Record<string, string> = {
     'delivered': 'Entregado', 'cancelled': 'Cancelado',
 }
 
-export default function LandingClient({ config, workshop, products, mobile }: { config: LandingConfig, workshop: Workshop, products: Product[], mobile?: boolean }) {
+export default function LandingClient({ config, workshop, products, mobile, preview }: { config: LandingConfig, workshop: Workshop, products: Product[], mobile?: boolean, preview?: boolean }) {
     const [code, setCode] = useState('')
     const [isSearching, setIsSearching] = useState(false)
     const [trackingData, setTrackingData] = useState<any>(null)
@@ -287,7 +288,7 @@ export default function LandingClient({ config, workshop, products, mobile }: { 
                     /* --- DYNAMIC BLOCK RENDERER --- */
                     <div className={`w-full flex flex-col pt-10 ${mobile ? 'gap-12' : 'gap-12 sm:gap-20'}`}>
                         {config.blocks.filter(b => b.visible).map((block) => {
-                            const p = { block, config, mobile }
+                            const p = { block, config, mobile, preview }
                             switch (block.type) {
                                 case 'hero': return <HeroBlock key={block.id} {...p} />;
                                 case 'tracking': return <TrackingBlock key={block.id} {...p} code={code} setCode={setCode} handleSearch={handleSearch} isSearching={isSearching} error={error} />;
@@ -301,6 +302,7 @@ export default function LandingClient({ config, workshop, products, mobile }: { 
                             }
                         })}
                     </div>
+                    <LandingFooter config={config} workshop={workshop} preview={preview} />
                 )}
             </main>
 
