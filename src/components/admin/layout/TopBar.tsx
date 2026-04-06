@@ -24,7 +24,7 @@ export default function TopBar({ onMenuClick, userName, role }: Props) {
     const titulo = TITULOS[pathname] ?? 'Admin'
 
     return (
-        <header className="sticky top-0 z-20 flex items-center gap-4 h-16 px-4 sm:px-6 bg-zinc-950/90 backdrop-blur-md border-b border-zinc-800/80 flex-shrink-0">
+        <header className="sticky top-0 z-[150] flex items-center gap-4 h-16 px-4 sm:px-6 bg-zinc-950/90 backdrop-blur-md border-b border-zinc-800/80 flex-shrink-0">
             {/* Mobile Menu */}
             <button
                 onClick={onMenuClick}

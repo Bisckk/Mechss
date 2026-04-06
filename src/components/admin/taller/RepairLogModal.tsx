@@ -111,7 +111,7 @@ export default function RepairLogModal({ isOpen, onClose, repair }: RepairLogMod
     const config = statusConfig[currentStatus] || { label: currentStatus, color: 'text-zinc-400', bg: 'bg-zinc-800' }
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
+        <div className="fixed inset-x-0 bottom-0 top-16 z-[100] flex items-center justify-center p-4 sm:p-6">
             <div className="absolute inset-0 bg-black/85 backdrop-blur-lg" onClick={onClose} />
 
             <div className="relative w-full max-w-4xl bg-zinc-950 border border-white/10 rounded-2xl flex flex-col shadow-[0_0_60px_rgba(0,0,0,0.6)] animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-hidden">

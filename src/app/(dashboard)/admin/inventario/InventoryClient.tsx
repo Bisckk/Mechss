@@ -355,39 +355,82 @@ export default function InventoryClient({ initialItems }: { initialItems: Invent
 
             {/* ── MODAL ─────────────────────────────────────────── */}
             {isModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className="bg-zinc-950 border border-white/10 rounded-3xl w-full max-w-2xl shadow-2xl relative overflow-hidden max-h-[90vh] overflow-y-auto">
+                <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-20 bg-black/75 backdrop-blur-md animate-in fade-in duration-200">
+                    <div className="bg-zinc-950 border border-white/10 rounded-3xl w-full max-w-2xl shadow-2xl flex flex-col max-h-[calc(100dvh-5rem)] relative overflow-hidden">
                         {/* Glow */}
-                        <div className="absolute top-0 right-0 w-64 h-64 bg-orange-500/10 rounded-full blur-[80px] pointer-events-none"></div>
+                        <div className="absolute top-0 right-0 w-64 h-64 bg-orange-500/10 rounded-full blur-[80px] pointer-events-none z-0" />
 
-                        {/* Modal Header */}
-                        <div className="flex items-center justify-between p-6 border-b border-white/5 sticky top-0 bg-zinc-950/90 backdrop-blur-sm z-10">
-                            <h2 className="text-xl font-bold text-white tracking-tight flex items-center gap-3">
-                                <div className="p-2 rounded-xl bg-orange-500/20">
-                                    {isEditing ? <Edit className="w-5 h-5 text-orange-400" /> : <Plus className="w-5 h-5 text-orange-400" />}
+                        {/* Header — flex-shrink-0, never scrolls */}
+                        <div className="flex items-center justify-between px-6 py-5 border-b border-white/5 flex-shrink-0 relative z-10">
+                            <h2 className="text-lg font-bold text-white tracking-tight flex items-center gap-3">
+                                <div className="p-2 rounded-xl bg-orange-500/20 shrink-0">
+                                    {isEditing ? <Edit className="w-4 h-4 text-orange-400" /> : <Plus className="w-4 h-4 text-orange-400" />}
                                 </div>
                                 {isEditing ? 'Editar Producto' : 'Nuevo Producto'}
                             </h2>
-                            <button onClick={() => setIsModalOpen(false)} className="p-2 text-zinc-400 hover:text-white hover:bg-white/10 rounded-xl transition-colors">
+                            <button
+                                type="button"
+                                onClick={() => setIsModalOpen(false)}
+                                className="p-2 text-zinc-500 hover:text-white hover:bg-white/10 rounded-xl transition-colors shrink-0"
+                            >
                                 <X className="w-5 h-5" />
                             </button>
                         </div>
 
-                        <form onSubmit={handleSave} className="p-6 space-y-6 relative z-10">
+                        <form onSubmit={handleSave} className="flex flex-col flex-1 min-h-0 relative z-10">
+                        {/* Scrollable body */}
+                        <div className="flex-1 overflow-y-auto p-6 space-y-6">
                             {/* Product Name */}
                             <div>
                                 <label className="text-xs font-semibold text-zinc-400">Nombre del Producto *</label>
                                 <input required type="text" value={selectedItem.name || ''} onChange={(e) => setSelectedItem({ ...selectedItem, name: e.target.value })} className="w-full mt-1 bg-black/40 border border-white/5 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-orange-500/50" placeholder="Ej: Casco Integral Pro" />
                             </div>
 
-                            {/* Image Upload */}
-                            <div>
-                                <label className="text-xs font-semibold text-zinc-400 block mb-2">Imagen del Producto</label>
-                                <ImageUploader
-                                    value={selectedItem.image_url || ''}
-                                    onChange={(url) => setSelectedItem({ ...selectedItem, image_url: url })}
-                                    folder="products"
-                                />
+                            {/* Image Upload + Live Preview */}
+                            <div className="space-y-3">
+                                <label className="text-xs font-semibold text-zinc-400 block">Imagen del Producto</label>
+
+                                {/* Layout: uploader izquierda, preview derecha en sm+ */}
+                                <div className={`flex gap-4 ${selectedItem.image_url ? 'flex-col sm:flex-row sm:items-start' : ''}`}>
+                                    <div className={selectedItem.image_url ? 'flex-1' : 'w-full'}>
+                                        <ImageUploader
+                                            value={selectedItem.image_url || ''}
+                                            onChange={(url) => setSelectedItem({ ...selectedItem, image_url: url })}
+                                            folder="products"
+                                        />
+                                    </div>
+
+                                    {/* Vista previa — solo visible cuando hay imagen */}
+                                    {selectedItem.image_url && (
+                                        <div className="sm:w-44 flex-shrink-0">
+                                            <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2">Vista previa</p>
+                                            <div className="bg-zinc-900/60 border border-white/8 rounded-2xl overflow-hidden">
+                                                {/* Imagen */}
+                                                <div className="h-32 bg-zinc-950 flex items-center justify-center overflow-hidden">
+                                                    <img
+                                                        src={selectedItem.image_url}
+                                                        alt="Preview"
+                                                        className="w-full h-full object-contain p-3"
+                                                    />
+                                                </div>
+                                                {/* Info */}
+                                                <div className="p-3">
+                                                    {selectedItem.category && (
+                                                        <p className="text-[9px] uppercase font-bold text-zinc-500 tracking-wider mb-1">{selectedItem.category}</p>
+                                                    )}
+                                                    <p className="text-xs font-bold text-white leading-tight line-clamp-2">
+                                                        {selectedItem.name || 'Nombre del producto'}
+                                                    </p>
+                                                    {(selectedItem.sale_price || 0) > 0 && (
+                                                        <p className="text-sm font-black text-white mt-1.5">
+                                                            ${Number(selectedItem.sale_price).toLocaleString('es-CO')}
+                                                        </p>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
 
                             <div>
@@ -420,35 +463,40 @@ export default function InventoryClient({ initialItems }: { initialItems: Invent
                                 <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
                                     <DollarSign className="w-4 h-4 text-orange-400" /> Precio e Inventario
                                 </h3>
-                                <div className="grid grid-cols-3 gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                    {/* Costo */}
                                     <div>
                                         <label className="text-xs font-semibold text-zinc-400">Costo (COP)</label>
                                         <div className="relative mt-1">
-                                            <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-zinc-600 text-sm font-bold">$</span>
+                                            <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-zinc-600 text-sm font-bold pointer-events-none">$</span>
                                             <input
                                                 type="text"
                                                 inputMode="numeric"
                                                 value={formatInputDisplay(selectedItem.cost_price)}
                                                 onChange={(e) => setSelectedItem({ ...selectedItem, cost_price: parseCurrencyInput(e.target.value) })}
-                                                className="w-full bg-black/40 border border-white/5 rounded-xl p-3 pl-7 text-sm text-white focus:outline-none focus:border-orange-500/50"
+                                                className="w-full bg-black/40 border border-white/5 rounded-xl p-3 pl-7 text-sm text-white focus:outline-none focus:border-orange-500/50 min-h-[44px]"
                                                 placeholder="50.000"
                                             />
                                         </div>
                                     </div>
+
+                                    {/* Precio Venta */}
                                     <div>
                                         <label className="text-xs font-semibold text-zinc-400">Precio Venta (COP)</label>
                                         <div className="relative mt-1">
-                                            <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-orange-500/60 text-sm font-bold">$</span>
+                                            <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-orange-500/60 text-sm font-bold pointer-events-none">$</span>
                                             <input
                                                 type="text"
                                                 inputMode="numeric"
                                                 value={formatInputDisplay(selectedItem.sale_price)}
                                                 onChange={(e) => setSelectedItem({ ...selectedItem, sale_price: parseCurrencyInput(e.target.value) })}
-                                                className="w-full bg-black/40 border border-white/5 rounded-xl p-3 pl-7 text-sm text-white font-bold focus:outline-none focus:border-orange-500/50"
+                                                className="w-full bg-black/40 border border-white/5 rounded-xl p-3 pl-7 text-sm text-white font-bold focus:outline-none focus:border-orange-500/50 min-h-[44px]"
                                                 placeholder="120.000"
                                             />
                                         </div>
                                     </div>
+
+                                    {/* Stock */}
                                     <div>
                                         <label className="text-xs font-semibold text-zinc-400">Unidades en Stock</label>
                                         <input
@@ -456,7 +504,7 @@ export default function InventoryClient({ initialItems }: { initialItems: Invent
                                             inputMode="numeric"
                                             value={selectedItem.stock_quantity || ''}
                                             onChange={(e) => setSelectedItem({ ...selectedItem, stock_quantity: parseInt(e.target.value.replace(/[^0-9]/g, '')) || 0 })}
-                                            className="w-full mt-1 bg-black/40 border border-white/5 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-orange-500/50"
+                                            className="w-full mt-1 bg-black/40 border border-white/5 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-orange-500/50 min-h-[44px]"
                                             placeholder="10"
                                         />
                                     </div>
@@ -500,13 +548,26 @@ export default function InventoryClient({ initialItems }: { initialItems: Invent
                                 {selectedItem.is_published && <Eye className="w-5 h-5 text-emerald-400 ml-auto flex-shrink-0" />}
                             </button>
 
-                            {/* Actions */}
-                            <div className="flex justify-end gap-3 pt-2">
-                                <button type="button" onClick={() => setIsModalOpen(false)} className="px-5 py-3 text-sm font-bold text-zinc-400 hover:text-white transition-colors">Cancelar</button>
-                                <button type="submit" disabled={isSaving} className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded-xl text-sm font-bold transition-all shadow-lg hover:shadow-orange-500/20 active:scale-95 disabled:opacity-50">
-                                    {isSaving && <Loader2 className="w-4 h-4 animate-spin" />} {isEditing ? 'Guardar Cambios' : 'Crear Producto'}
-                                </button>
-                            </div>
+                        </div>{/* end scrollable body */}
+
+                        {/* Footer — flex-shrink-0, never scrolls */}
+                        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-white/5 bg-zinc-950/60 backdrop-blur-sm flex-shrink-0">
+                            <button
+                                type="button"
+                                onClick={() => setIsModalOpen(false)}
+                                className="px-5 py-2.5 text-sm font-semibold text-zinc-400 hover:text-white transition-colors rounded-xl hover:bg-white/5"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                type="submit"
+                                disabled={isSaving}
+                                className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white px-6 py-2.5 rounded-xl text-sm font-bold transition-all shadow-lg hover:shadow-orange-500/20 active:scale-95 disabled:opacity-50"
+                            >
+                                {isSaving && <Loader2 className="w-4 h-4 animate-spin" />}
+                                {isEditing ? 'Guardar Cambios' : 'Crear Producto'}
+                            </button>
+                        </div>
                         </form>
                     </div>
                 </div>

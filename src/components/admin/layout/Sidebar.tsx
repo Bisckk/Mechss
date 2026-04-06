@@ -184,7 +184,7 @@ export default function Sidebar({ mobileOpen, onMobileClose, user }: Props) {
             {/* Mobile backdrop */}
             <div
                 ref={backdropRef}
-                className="fixed inset-0 z-[60] bg-black/40 backdrop-blur-md lg:hidden"
+                className="fixed inset-0 z-[160] bg-black/40 backdrop-blur-md lg:hidden"
                 style={{ display: 'none' }}
                 onClick={onMobileClose}
             />
@@ -192,7 +192,7 @@ export default function Sidebar({ mobileOpen, onMobileClose, user }: Props) {
             {/* Mobile drawer */}
             <div
                 ref={drawerRef}
-                className="fixed top-0 left-0 z-[70] h-full w-[260px] lg:hidden"
+                className="fixed top-0 left-0 z-[170] h-full w-[260px] lg:hidden"
                 style={{ transform: 'translateX(-100%)' }}
             >
                 <SidebarContent mobile />

@@ -58,7 +58,7 @@ export default function ClientDetailsDrawer({ isOpen, onClose, client }: ClientD
     const color = colors[client.full_name.charCodeAt(0) % colors.length]
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
+        <div className="fixed inset-x-0 bottom-0 top-16 z-[100] flex items-center justify-center p-4 sm:p-6">
             {/* Backdrop */}
             <div
                 className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity"

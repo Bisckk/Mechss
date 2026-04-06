@@ -5,7 +5,9 @@
       "Bash(npm run:*)",
       "Read(//c/Users/Administrator/Desktop/Mechss/Mechss/**)",
       "Bash(python3 \"C:/Users/Administrator/.claude/skills/ui-ux-pro-max/scripts/search.py\" \"automotive workshop landing page dark minimal premium\" --design-system -p \"Mechss Landing\" -f markdown)",
-      "Bash(python \"C:/Users/Administrator/.claude/skills/ui-ux-pro-max/scripts/search.py\" \"automotive workshop service landing dark minimal\" --design-system -p \"Mechss\" -f markdown)"
+      "Bash(python \"C:/Users/Administrator/.claude/skills/ui-ux-pro-max/scripts/search.py\" \"automotive workshop service landing dark minimal\" --design-system -p \"Mechss\" -f markdown)",
+      "Bash(xargs grep:*)",
+      "Bash(sed:*)"
     ]
   }
 }

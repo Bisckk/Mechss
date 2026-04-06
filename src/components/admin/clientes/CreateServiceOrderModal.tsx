@@ -63,7 +63,7 @@ export default function CreateServiceOrderModal({ isOpen, onClose, vehicleId, cl
     }
 
     return (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 sm:p-6">
+        <div className="fixed inset-x-0 bottom-0 top-16 z-[120] flex items-center justify-center p-4 sm:p-6">
             <div className="absolute inset-0 bg-black/80 backdrop-blur-md transition-opacity" onClick={onClose} />
             <div className="relative w-full max-w-lg bg-zinc-950 border border-white/10 rounded-2xl flex flex-col shadow-[0_0_50px_rgba(0,0,0,0.5)] animate-in zoom-in-95 duration-200">
                 <div className="flex items-center justify-between p-5 border-b border-white/5 bg-zinc-900/50">

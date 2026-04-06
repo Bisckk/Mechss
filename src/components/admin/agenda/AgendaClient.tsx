@@ -377,7 +377,7 @@ export default function AgendaClient({ initialAppointments = [] }: AgendaClientP
 
             {/* QUICK EDIT MODAL */}
             {editAppt && (
-                <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+                <div className="fixed inset-x-0 bottom-0 top-16 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
                     <div className="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden animate-in zoom-in-95">
                         <div className="p-4 border-b border-zinc-800 flex justify-between items-center bg-zinc-950/50">
                             <h3 className="text-white font-bold text-lg">Editar Detalles de Cita</h3>
@@ -410,7 +410,7 @@ export default function AgendaClient({ initialAppointments = [] }: AgendaClientP
 
             {/* CUSTOM CONFIRM CANCEL MODAL */}
             {confirmCancelId && (
-                <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+                <div className="fixed inset-x-0 bottom-0 top-16 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
                     <div className="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-sm shadow-2xl p-6 text-center animate-in zoom-in-95 font-sans">
                         <div className="w-12 h-12 rounded-full bg-red-500/10 border border-red-500/20 text-red-500 flex items-center justify-center mx-auto mb-4">
                             <X className="w-6 h-6" />

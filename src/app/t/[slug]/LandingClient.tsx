@@ -286,23 +286,25 @@ export default function LandingClient({ config, workshop, products, mobile, prev
                     </div>
                 ) : (
                     /* --- DYNAMIC BLOCK RENDERER --- */
-                    <div className={`w-full flex flex-col pt-10 ${mobile ? 'gap-12' : 'gap-12 sm:gap-20'}`}>
-                        {config.blocks.filter(b => b.visible).map((block) => {
-                            const p = { block, config, mobile, preview }
-                            switch (block.type) {
-                                case 'hero': return <HeroBlock key={block.id} {...p} />;
-                                case 'tracking': return <TrackingBlock key={block.id} {...p} code={code} setCode={setCode} handleSearch={handleSearch} isSearching={isSearching} error={error} />;
-                                case 'ecommerce': return <EcommerceBlock key={block.id} {...p} products={products} cart={cart} addToCart={addToCart} removeFromCart={removeFromCart} />;
-                                case 'services': return <ServicesBlock key={block.id} {...p} />;
-                                case 'gallery': return <GalleryBlock key={block.id} {...p} />;
-                                case 'testimonials': return <TestimonialsBlock key={block.id} {...p} />;
-                                case 'faq': return <FaqBlock key={block.id} {...p} />;
-                                case 'contact': return <ContactBlock key={block.id} {...p} />;
-                                default: return null;
-                            }
-                        })}
-                    </div>
-                    <LandingFooter config={config} workshop={workshop} preview={preview} />
+                    <>
+                        <div className={`w-full flex flex-col pt-10 ${mobile ? 'gap-12' : 'gap-12 sm:gap-20'}`}>
+                            {config.blocks.filter(b => b.visible).map((block) => {
+                                const p = { block, config, mobile, preview }
+                                switch (block.type) {
+                                    case 'hero': return <HeroBlock key={block.id} {...p} />;
+                                    case 'tracking': return <TrackingBlock key={block.id} {...p} code={code} setCode={setCode} handleSearch={handleSearch} isSearching={isSearching} error={error} />;
+                                    case 'ecommerce': return <EcommerceBlock key={block.id} {...p} products={products} cart={cart} addToCart={addToCart} removeFromCart={removeFromCart} />;
+                                    case 'services': return <ServicesBlock key={block.id} {...p} />;
+                                    case 'gallery': return <GalleryBlock key={block.id} {...p} />;
+                                    case 'testimonials': return <TestimonialsBlock key={block.id} {...p} />;
+                                    case 'faq': return <FaqBlock key={block.id} {...p} />;
+                                    case 'contact': return <ContactBlock key={block.id} {...p} />;
+                                    default: return null;
+                                }
+                            })}
+                        </div>
+                        <LandingFooter config={config} workshop={workshop} preview={preview} />
+                    </>
                 )}
             </main>
 
