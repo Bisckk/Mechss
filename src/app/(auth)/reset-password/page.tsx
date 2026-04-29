@@ -23,8 +23,8 @@ export default function ResetPasswordPage() {
     const ctx = gsap.context(() => {
       gsap.fromTo(
         '.rp-card',
-        { opacity: 0, y: 32 },
-        { opacity: 1, y: 0, duration: 0.65, ease: 'power3.out' }
+        { opacity: 0, y: 24 },
+        { opacity: 1, y: 0, duration: 0.5, ease: 'expo.out', force3D: true }
       )
     }, pageRef)
     return () => ctx.revert()

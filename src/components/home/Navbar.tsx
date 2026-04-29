@@ -13,8 +13,8 @@ export default function Navbar() {
     const ctx = gsap.context(() => {
       gsap.fromTo(
         navRef.current,
-        { y: -80, opacity: 0 },
-        { y: 0, opacity: 1, duration: 0.7, ease: 'power3.out', delay: 0.1 }
+        { y: -60, opacity: 0 },
+        { y: 0, opacity: 1, duration: 0.6, ease: 'expo.out', force3D: true, delay: 0.05 }
       )
     }, navRef)
 
@@ -37,7 +37,7 @@ export default function Navbar() {
   return (
     <nav
       ref={navRef}
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+      className={`fixed top-0 left-0 right-0 z-50 transition-[background-color,backdrop-filter,border-color,box-shadow] duration-200 ${
         scrolled
           ? 'bg-zinc-950/95 backdrop-blur-md border-b border-zinc-800/80 shadow-xl shadow-black/20'
           : 'bg-transparent'

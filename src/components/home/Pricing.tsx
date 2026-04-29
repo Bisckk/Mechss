@@ -78,14 +78,14 @@ export default function Pricing() {
     const ctx = gsap.context(() => {
       gsap.fromTo(
         '.pricing-header',
-        { opacity: 0, y: 40 },
-        { opacity: 1, y: 0, duration: 0.8,
+        { opacity: 0, y: 30 },
+        { opacity: 1, y: 0, duration: 0.6, ease: 'expo.out', force3D: true,
           scrollTrigger: { trigger: '.pricing-header', start: 'top 85%' } }
       )
       gsap.fromTo(
         '.pricing-card',
-        { opacity: 0, y: 56 },
-        { opacity: 1, y: 0, duration: 0.7, stagger: 0.12, ease: 'power3.out',
+        { opacity: 0, y: 40 },
+        { opacity: 1, y: 0, duration: 0.55, stagger: 0.1, ease: 'expo.out', force3D: true,
           scrollTrigger: { trigger: '.pricing-grid', start: 'top 80%' } }
       )
     }, sectionRef)

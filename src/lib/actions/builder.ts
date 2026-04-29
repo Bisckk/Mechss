@@ -95,7 +95,8 @@ export async function getLandingPageConfigAction(): Promise<{ ok: true; data: La
 
         const defaultBlocks = [
             { id: 'hero_1', type: 'hero', visible: true, content: { title: `Bienvenido a ${w?.name || 'Nuestro Taller'}`, subtitle: 'Expertos en cuidado y mantenimiento de motocicletas.' } },
-            { id: 'track_1', type: 'tracking', visible: true, content: { title: 'Rastrea tu moto', subtitle: 'Ingresa tu código de seguimiento (#REP-XXX) para ver en tiempo real la reparación.' } }
+            { id: 'track_1', type: 'tracking', visible: true, content: { title: 'Rastrea tu moto', subtitle: 'Ingresa tu código de seguimiento (#REP-XXX) para ver en tiempo real la reparación.' } },
+            { id: 'footer', type: 'footer', visible: true, content: { tagline: `Especializados en el cuidado de tu moto.`, address: '', hours: 'Lun – Sáb · 8 am – 6 pm', whatsapp: '', instagram: '', facebook: '' } }
         ]
 
         const { data: newConfig, error: insertError } = await (supabase.from('workshop_landing_pages') as any)

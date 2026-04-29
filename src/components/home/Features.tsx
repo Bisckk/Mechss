@@ -94,21 +94,22 @@ export default function Features() {
     const ctx = gsap.context(() => {
       gsap.fromTo(
         '.features-header',
-        { opacity: 0, y: 40 },
+        { opacity: 0, y: 32 },
         {
-          opacity: 1, y: 0, duration: 0.8,
+          opacity: 1, y: 0, duration: 0.65, ease: 'expo.out', force3D: true,
           scrollTrigger: { trigger: '.features-header', start: 'top 85%' },
         }
       )
 
       gsap.fromTo(
         '.feature-card',
-        { opacity: 0, y: 48, scale: 0.97 },
+        { opacity: 0, y: 36, scale: 0.97 },
         {
           opacity: 1, y: 0, scale: 1,
-          duration: 0.65,
-          stagger: 0.1,
-          ease: 'power3.out',
+          duration: 0.55,
+          stagger: 0.08,
+          ease: 'expo.out',
+          force3D: true,
           scrollTrigger: { trigger: '.features-grid', start: 'top 80%' },
         }
       )

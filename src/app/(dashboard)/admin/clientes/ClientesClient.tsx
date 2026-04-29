@@ -2,7 +2,9 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { Plus, Search, UsersRound, CalendarIcon, Car, MoreVertical, MapPin, Mail, Phone, ChevronRight, Eye, Pencil, Power } from 'lucide-react'
+import { gsap } from 'gsap'
 import ClientDetailsDrawer from '@/components/admin/clientes/ClientDetailsDrawer'
+import NewClientDrawer from '@/components/admin/clientes/NewClientDrawer'
 
 // Define the client type inline based on the Supabase schema
 type DbClient = {
@@ -24,16 +26,33 @@ interface ClientesClientProps {
 }
 
 export default function ClientesClient({ initialClients }: ClientesClientProps) {
+    const [clients, setClients] = useState<ClientWithCounts[]>(initialClients)
     const [searchQuery, setSearchQuery] = useState('')
     const [activeMenu, setActiveMenu] = useState<string | null>(null)
     const [detailsClient, setDetailsClient] = useState<DbClient | null>(null)
+    const [newClientOpen, setNewClientOpen] = useState(false)
     const menuRef = useRef<HTMLDivElement>(null)
 
-    const filteredClients = initialClients.filter(c =>
+    const filteredClients = clients.filter(c =>
         c.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         c.phone?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         c.email?.toLowerCase().includes(searchQuery.toLowerCase())
     )
+
+    // Entrance animation on mount
+    useEffect(() => {
+        const ctx = gsap.context(() => {
+            gsap.fromTo('.clientes-header',
+                { opacity: 0, y: 10 },
+                { opacity: 1, y: 0, duration: 0.35, ease: 'expo.out', force3D: true }
+            )
+            gsap.fromTo('.client-card',
+                { opacity: 0, y: 18, scale: 0.97 },
+                { opacity: 1, y: 0, scale: 1, duration: 0.45, stagger: 0.05, ease: 'expo.out', force3D: true, delay: 0.08 }
+            )
+        })
+        return () => ctx.revert()
+    }, [])
 
     // Close options menu when clicking outside
     useEffect(() => {
@@ -47,14 +66,17 @@ export default function ClientesClient({ initialClients }: ClientesClientProps) 
     }, [])
 
     return (
-        <div className="space-y-6 max-w-6xl mx-auto animate-in fade-in zoom-in-95 duration-500 pb-10">
+        <div className="space-y-6 max-w-6xl mx-auto pb-10">
             {/* Header */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div className="clientes-header flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-white tracking-tight">Gestión de Clientes</h1>
-                    <p className="text-zinc-400 text-sm mt-1">Administra los {initialClients.length} clientes registrados en tu taller.</p>
+                    <p className="text-zinc-400 text-sm mt-1">Administra los {clients.length} clientes registrados en tu taller.</p>
                 </div>
-                <button className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-xl text-sm font-semibold transition-all shadow-lg hover:shadow-orange-500/20 active:scale-95 group">
+                <button
+                    onClick={() => setNewClientOpen(true)}
+                    className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-xl text-sm font-semibold transition-all shadow-lg hover:shadow-orange-500/20 active:scale-95 group"
+                >
                     <Plus className="w-4 h-4 group-hover:rotate-90 transition-transform" /> Nuevo Cliente
                 </button>
             </div>
@@ -84,7 +106,7 @@ export default function ClientesClient({ initialClients }: ClientesClientProps) 
                             <div
                                 key={client.id}
                                 onClick={() => setDetailsClient(client)}
-                                className={`cursor-pointer bg-zinc-900/80 backdrop-blur-sm border border-white/5 hover:border-orange-500/40 rounded-2xl p-5 transition-all duration-300 group flex flex-col hover:shadow-[0_0_30px_rgba(249,115,22,0.1)] relative overflow-hidden ${!client.is_active ? 'opacity-60 saturate-50 hover:opacity-100 transition-opacity' : ''}`}
+                                className={`client-card cursor-pointer bg-zinc-900/80 backdrop-blur-sm border border-white/5 hover:border-orange-500/40 rounded-2xl p-5 transition-[border-color,box-shadow,background-color] duration-200 group flex flex-col hover:shadow-[0_0_30px_rgba(249,115,22,0.1)] relative overflow-hidden ${!client.is_active ? 'opacity-60 saturate-50 hover:opacity-100 transition-opacity' : ''}`}
                             >
                                 {/* Background glow effect on hover */}
                                 <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500/0 rounded-full blur-3xl group-hover:bg-orange-500/5 transition-colors pointer-events-none"></div>
@@ -202,6 +224,16 @@ export default function ClientesClient({ initialClients }: ClientesClientProps) 
                 isOpen={detailsClient !== null}
                 onClose={() => setDetailsClient(null)}
                 client={detailsClient}
+            />
+
+            {/* New Client Drawer */}
+            <NewClientDrawer
+                isOpen={newClientOpen}
+                onClose={() => setNewClientOpen(false)}
+                onCreated={(newClient) => {
+                    setClients(prev => [newClient, ...prev])
+                    setNewClientOpen(false)
+                }}
             />
         </div>
     )

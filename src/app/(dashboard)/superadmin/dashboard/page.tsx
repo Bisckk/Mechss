@@ -3,6 +3,7 @@ import StatsCards, { type StatsData } from '@/components/superadmin/dashboard/St
 import ChartWrapper from './ChartWrapper'
 import type { ChartEntry } from '@/components/superadmin/dashboard/WorkshopsChart'
 import { MESES_ES } from '@/lib/utils'
+import DashboardAnimator from '@/components/ui/DashboardAnimator'
 
 async function fetchStats(): Promise<StatsData> {
   const supabase = await createClient()
@@ -83,7 +84,8 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-6 sm:space-y-8">
-      <div>
+      <DashboardAnimator />
+      <div className="dash-header">
         <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
           Vista General
         </h1>

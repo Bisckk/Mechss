@@ -26,21 +26,38 @@
     color: theme('colors.white');
   }
 
+  /* ── Scrollbar global — webkit (Chrome, Edge, Safari) ── */
   ::-webkit-scrollbar {
-    width: 6px;
+    width: 5px;
+    height: 5px;
   }
 
   ::-webkit-scrollbar-track {
-    background: theme('colors.zinc.950');
+    background: transparent;
   }
 
   ::-webkit-scrollbar-thumb {
-    background: theme('colors.zinc.700');
-    border-radius: 3px;
+    background: rgba(82, 82, 91, 0.5); /* zinc-600 @ 50% */
+    border-radius: 999px;
+    transition: background 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: theme('colors.zinc.500');
+    background: rgba(161, 161, 170, 0.65); /* zinc-400 @ 65% */
+  }
+
+  ::-webkit-scrollbar-thumb:active {
+    background: rgba(249, 115, 22, 0.7); /* orange-500 @ 70% */
+  }
+
+  ::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+
+  /* ── Scrollbar global — Firefox ── */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(82, 82, 91, 0.5) transparent;
   }
 
   /* Remove number input spinners */
@@ -49,7 +66,7 @@
     -webkit-appearance: none;
     margin: 0;
   }
-  
+
   input[type="number"] {
     -moz-appearance: textfield;
   }
@@ -58,4 +75,54 @@
     from { width: 100%; }
     to { width: 0%; }
   }
+}
+
+/* ── Global animation performance ────────────────────────────────────────────
+   Override Tailwind's default ease (0.4,0,0.2,1) with an expo-out curve
+   (0.16,1,0.3,1). This starts ~4× faster and decelerates smoothly —
+   the same curve GSAP's expo.out uses — giving a "240hz" feel at 60fps.
+   ─────────────────────────────────────────────────────────────────────────── */
+
+/* CSS transitions: override timing function for all Tailwind transition-* */
+.transition,
+.transition-all,
+.transition-colors,
+.transition-opacity,
+.transition-transform,
+.transition-shadow,
+[class*="transition-["] {
+  transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* CSS animate-in/out (tailwindcss-animate): replace default "ease" with expo-out */
+[class*="animate-in"],
+[class*="animate-out"] {
+  animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1) !important;
+  will-change: transform, opacity;
+}
+
+/* ── Smooth scroll in every overflow container ───────────────────────────────
+   Applies to panels, kanban boards, modals, sidebars — anywhere scroll exists.
+   User-drag scroll is always OS-smooth; this only affects programmatic &
+   anchor-based scrolling, making them feel fluid too.
+   ─────────────────────────────────────────────────────────────────────────── */
+.overflow-auto,
+.overflow-y-auto,
+.overflow-x-auto,
+.overflow-scroll,
+.overflow-y-scroll,
+.overflow-x-scroll {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+/* ── Hover interactions: GPU-only scale/translate defaults ───────────────── */
+.group:hover .group-hover\:scale-110,
+.group:hover .group-hover\:scale-105,
+.hover\:scale-105:hover,
+.hover\:scale-110:hover,
+.hover\:-translate-y-0\.5:hover,
+.active\:scale-95:active {
+  will-change: transform;
 }

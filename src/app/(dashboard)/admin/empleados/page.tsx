@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { Plus, UserCog, ShieldCheck } from 'lucide-react'
+import DashboardAnimator from '@/components/ui/DashboardAnimator'
 
 export const metadata = {
     title: 'Empleados | MotoFix Admin',
@@ -11,9 +12,10 @@ export default async function AdminEmpleadosPage() {
     // Future integration to fetch employees for this workshop (Mecánicos, Recepcionistas, Admin extra)
 
     return (
-        <div className="space-y-6 max-w-6xl mx-auto animate-in fade-in zoom-in-95 duration-500">
+        <div className="space-y-6 max-w-6xl mx-auto">
+            <DashboardAnimator />
 
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div className="dash-header flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-white tracking-tight">Empleados</h1>
                     <p className="text-zinc-400 text-sm mt-1">Administra tu personal de Recepcionista y Mecánicos.</p>
@@ -26,7 +28,7 @@ export default async function AdminEmpleadosPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {/* Placeholder cards */}
                 {[1, 2, 3].map((_, i) => (
-                    <div key={i} className="bg-zinc-900 border border-white/5 rounded-2xl p-5 hover:bg-white/[0.02] transition-colors relative overflow-hidden flex flex-col items-center text-center">
+                    <div key={i} className="dash-stat bg-zinc-900 border border-white/5 rounded-2xl p-5 hover:bg-white/[0.02] transition-colors relative overflow-hidden flex flex-col items-center text-center">
 
                         <div className="absolute top-2 right-2 flex items-center gap-1 bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase">
                             Activo

@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useMemo, useEffect, useTransition } from 'react'
+import { useState, useMemo, useEffect, useTransition, useRef } from 'react'
 import { Plus, Calendar as CalendarIcon, ListTodo, ChevronLeft, ChevronRight, Clock, User, Car, FileText, CheckCircle2, X } from 'lucide-react'
+import { gsap } from 'gsap'
 import AppointmentFormDrawer from './AppointmentFormDrawer'
 import { updateAppointmentStatusAction, updateAppointmentAction } from '@/lib/actions/admin'
 
@@ -37,6 +38,21 @@ export default function AgendaClient({ initialAppointments = [] }: AgendaClientP
     useEffect(() => {
         setAppointments(initialAppointments.filter(a => a.status !== 'cancelled'))
     }, [initialAppointments])
+
+    // Entrance animation
+    useEffect(() => {
+        const ctx = gsap.context(() => {
+            gsap.fromTo('.agenda-header',
+                { opacity: 0, y: 10 },
+                { opacity: 1, y: 0, duration: 0.35, ease: 'expo.out', force3D: true }
+            )
+            gsap.fromTo('.agenda-controls',
+                { opacity: 0, y: 14 },
+                { opacity: 1, y: 0, duration: 0.4, ease: 'expo.out', force3D: true, delay: 0.06 }
+            )
+        })
+        return () => ctx.revert()
+    }, [])
 
     const handleCancel = () => {
         if (!confirmCancelId) return
@@ -310,10 +326,10 @@ export default function AgendaClient({ initialAppointments = [] }: AgendaClientP
     // ── Render Component ────────────────────────────────────────────
     return (
         <>
-            <div className={`space-y-6 max-w-6xl mx-auto animate-in fade-in zoom-in-95 duration-500 ${isPending ? 'opacity-50 pointer-events-none' : ''}`}>
+            <div className={`space-y-6 max-w-6xl mx-auto ${isPending ? 'opacity-50 pointer-events-none' : ''}`}>
 
                 {/* Header */}
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div className="agenda-header flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                     <div>
                         <h1 className="text-2xl font-bold text-white tracking-tight">Agenda y Citas</h1>
                         <p className="text-zinc-400 text-sm mt-1">Gestiona las citas programadas y tu calendario diario.</p>
@@ -327,7 +343,7 @@ export default function AgendaClient({ initialAppointments = [] }: AgendaClientP
                 </div>
 
                 {/* Calendar Controls */}
-                <div className="flex flex-col sm:flex-row items-center justify-between bg-zinc-900 border border-white/5 p-4 rounded-xl backdrop-blur-md gap-4">
+                <div className="agenda-controls flex flex-col sm:flex-row items-center justify-between bg-zinc-900 border border-white/5 p-4 rounded-xl backdrop-blur-md gap-4">
                     <div className="flex items-center gap-4">
                         <button onClick={prevPeriod} className="p-2 hover:bg-white/5 rounded-lg text-zinc-400 hover:text-white transition">
                             <ChevronLeft className="w-5 h-5" />

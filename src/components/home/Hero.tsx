@@ -15,15 +15,15 @@ export default function Hero() {
 
   useEffect(() => {
     const ctx = gsap.context(() => {
-      const tl = gsap.timeline({ defaults: { ease: 'power3.out' } })
+      const tl = gsap.timeline({ defaults: { ease: 'expo.out', force3D: true } })
 
-      tl.fromTo('.hero-badge',     { opacity: 0, y: -16 },              { opacity: 1, y: 0, duration: 0.55 })
-        .fromTo('.hero-headline',  { opacity: 0, y: 56, skewY: 2 },    { opacity: 1, y: 0, skewY: 0, duration: 0.85 },  '-=0.2')
-        .fromTo('.hero-sub',       { opacity: 0, y: 28 },               { opacity: 1, y: 0, duration: 0.65 },            '-=0.5')
-        .fromTo('.hero-cta > *',   { opacity: 0, y: 20 },               { opacity: 1, y: 0, duration: 0.5, stagger: 0.12 }, '-=0.45')
-        .fromTo('.hero-stat',      { opacity: 0, y: 16 },               { opacity: 1, y: 0, duration: 0.45, stagger: 0.08 }, '-=0.3')
-        .fromTo('.hero-mockup',    { opacity: 0, scale: 0.94, x: 32 }, { opacity: 1, scale: 1, x: 0, duration: 1 },     '-=0.75')
-        .fromTo('.hero-notif',     { opacity: 0, x: -24, y: 16 },      { opacity: 1, x: 0, y: 0, duration: 0.5 },       '-=0.3')
+      tl.fromTo('.hero-badge',     { opacity: 0, y: -12 },              { opacity: 1, y: 0, duration: 0.5 })
+        .fromTo('.hero-headline',  { opacity: 0, y: 44, skewY: 2 },    { opacity: 1, y: 0, skewY: 0, duration: 0.75 },  '-=0.18')
+        .fromTo('.hero-sub',       { opacity: 0, y: 22 },               { opacity: 1, y: 0, duration: 0.55 },            '-=0.45')
+        .fromTo('.hero-cta > *',   { opacity: 0, y: 16 },               { opacity: 1, y: 0, duration: 0.45, stagger: 0.1 }, '-=0.4')
+        .fromTo('.hero-stat',      { opacity: 0, y: 12 },               { opacity: 1, y: 0, duration: 0.4, stagger: 0.07 }, '-=0.28')
+        .fromTo('.hero-mockup',    { opacity: 0, scale: 0.95, x: 28 }, { opacity: 1, scale: 1, x: 0, duration: 0.85 },  '-=0.7')
+        .fromTo('.hero-notif',     { opacity: 0, x: -20, y: 12 },      { opacity: 1, x: 0, y: 0, duration: 0.45 },      '-=0.28')
     }, sectionRef)
 
     return () => ctx.revert()

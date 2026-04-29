@@ -62,8 +62,8 @@ export default function Sidebar({ mobileOpen, onMobileClose, user }: Props) {
         didAnimate.current = true
         gsap.fromTo(
             '.admin-nav-item',
-            { opacity: 0, x: -10, scale: 0.98 },
-            { opacity: 1, x: 0, scale: 1, duration: 0.5, stagger: 0.04, ease: 'power3.out', delay: 0.1 }
+            { opacity: 0, x: -8, scale: 0.98 },
+            { opacity: 1, x: 0, scale: 1, duration: 0.4, stagger: 0.03, ease: 'expo.out', force3D: true, delay: 0.08 }
         )
     }, [])
 
@@ -76,11 +76,11 @@ export default function Sidebar({ mobileOpen, onMobileClose, user }: Props) {
         if (mobileOpen) {
             gsap.set(backdrop, { display: 'block', opacity: 0 })
             gsap.set(drawer, { x: '-100%' })
-            gsap.to(backdrop, { opacity: 1, duration: 0.4, ease: 'power2.out' })
-            gsap.to(drawer, { x: '0%', duration: 0.4, ease: 'expo.out' })
+            gsap.to(backdrop, { opacity: 1, duration: 0.3, ease: 'expo.out', force3D: true })
+            gsap.to(drawer, { x: '0%', duration: 0.35, ease: 'expo.out', force3D: true })
         } else {
-            gsap.to(backdrop, { opacity: 0, duration: 0.3, onComplete: () => { gsap.set(backdrop, { display: 'none' }) } })
-            gsap.to(drawer, { x: '-100%', duration: 0.3, ease: 'expo.in' })
+            gsap.to(backdrop, { opacity: 0, duration: 0.22, ease: 'expo.in', onComplete: () => { gsap.set(backdrop, { display: 'none' }) } })
+            gsap.to(drawer, { x: '-100%', duration: 0.25, ease: 'expo.in', force3D: true })
         }
     }, [mobileOpen])
 

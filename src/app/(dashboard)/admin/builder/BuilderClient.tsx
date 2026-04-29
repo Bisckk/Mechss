@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { Monitor, Smartphone, LayoutTemplate, Palette, Type, Save, Link as LinkIcon, Eye, EyeOff, Zap, Loader2, Shapes, ChevronUp, ChevronDown, Rocket, Search, ShoppingCart, Wrench, Image as ImageIcon, Star, MessageCircleQuestion, MapPin, Plus, Pipette, ArrowLeft, Trash2, Box, CheckCircle2, XCircle } from 'lucide-react'
+import { Monitor, Smartphone, LayoutTemplate, Palette, Type, Save, Link as LinkIcon, Eye, EyeOff, Zap, Loader2, Shapes, ChevronUp, ChevronDown, Rocket, Search, ShoppingCart, Wrench, Image as ImageIcon, Star, MessageCircleQuestion, MapPin, Plus, Pipette, ArrowLeft, Trash2, Box, CheckCircle2, XCircle, PanelBottom, Phone, Clock } from 'lucide-react'
 import { getLandingPageConfigAction, updateLandingPageConfigAction, LandingPageConfig } from '@/lib/actions/builder'
 import ImageUploader from '@/components/ui/ImageUploader'
 
@@ -44,10 +44,23 @@ export default function BuilderClient({ initialConfig, workshop, products }: { i
 
     const presetColors = ['#f97316', '#3b82f6', '#10b981', '#8b5cf6', '#f43f5e', '#eab308']
 
+    // Ensure the footer block always exists (backfill for older configs)
+    const ensureFooterBlock = (cfg: LandingPageConfig): LandingPageConfig => {
+        if (cfg.blocks.some(b => b.type === 'footer')) return cfg
+        return {
+            ...cfg,
+            blocks: [
+                ...cfg.blocks,
+                { id: 'footer', type: 'footer', visible: true, content: { tagline: '', address: '', hours: '', whatsapp: '', instagram: '', facebook: '' } }
+            ]
+        }
+    }
+
     useEffect(() => {
         if (!initialConfig) {
             loadConfig()
         } else {
+            setConfig(ensureFooterBlock(initialConfig))
             setIsLoading(false)
         }
     }, [])
@@ -56,7 +69,7 @@ export default function BuilderClient({ initialConfig, workshop, products }: { i
         setIsLoading(true)
         const res = await getLandingPageConfigAction()
         if (res.ok) {
-            setConfig(res.data)
+            setConfig(ensureFooterBlock(res.data))
         } else {
             setError(res.error)
         }
@@ -66,6 +79,14 @@ export default function BuilderClient({ initialConfig, workshop, products }: { i
     const handleChange = (field: keyof LandingPageConfig, value: any) => {
         if (!config) return
         setConfig({ ...config, [field]: value })
+    }
+
+    const handleFooterContentChange = (field: string, value: string) => {
+        if (!config) return
+        const newBlocks = config.blocks.map(b =>
+            b.type === 'footer' ? { ...b, content: { ...b.content, [field]: value } } : b
+        )
+        setConfig({ ...config, blocks: newBlocks })
     }
 
     const handleBlockContentChange = (id: string, contentField: string, value: string) => {
@@ -181,6 +202,8 @@ export default function BuilderClient({ initialConfig, workshop, products }: { i
     if (error || !config) return <div className="p-8 text-red-500">Error: {error || 'No se pudo cargar la configuración.'}</div>
 
     const activeBlock = config.blocks.find(b => b.id === activeBlockId)
+    const footerBlock = config.blocks.find(b => b.type === 'footer')
+    const contentBlocks = config.blocks.filter(b => b.type !== 'footer')
 
     const BLOCK_TYPES = [
         { id: 'hero', label: 'Banner Principal', icon: Rocket },
@@ -340,13 +363,13 @@ export default function BuilderClient({ initialConfig, workshop, products }: { i
                                 </div>
 
                                 <div className="space-y-2">
-                                    {config.blocks.map((block, index) => {
+                                    {contentBlocks.map((block, index) => {
                                         const typeInfo = BLOCK_TYPES.find(t => t.id === block.type)
                                         return (
                                             <div key={block.id} className="flex items-center bg-white/[0.02] border border-white/5 rounded-xl p-2 group hover:border-orange-500/30 transition-all">
                                                 <div className="flex flex-col gap-1 mr-2 px-1">
                                                     <button onClick={() => moveBlock(index, 'up')} disabled={index === 0} className="text-zinc-600 hover:text-white disabled:opacity-30"><ChevronUp className="w-4 h-4" /></button>
-                                                    <button onClick={() => moveBlock(index, 'down')} disabled={index === config.blocks.length - 1} className="text-zinc-600 hover:text-white disabled:opacity-30"><ChevronDown className="w-4 h-4" /></button>
+                                                    <button onClick={() => moveBlock(index, 'down')} disabled={index === contentBlocks.length - 1} className="text-zinc-600 hover:text-white disabled:opacity-30"><ChevronDown className="w-4 h-4" /></button>
                                                 </div>
 
                                                 <div
@@ -379,6 +402,31 @@ export default function BuilderClient({ initialConfig, workshop, products }: { i
                                             </div>
                                         )
                                     })}
+
+                                    {/* Footer layer — fixed, non-deletable */}
+                                    {footerBlock && (
+                                        <div
+                                            className="flex items-center bg-white/[0.02] border border-orange-500/20 rounded-xl p-2 cursor-pointer hover:border-orange-500/50 transition-all mt-1"
+                                            onClick={() => openBlockEditor('footer')}
+                                        >
+                                            <div className="flex flex-col gap-1 mr-2 px-1 opacity-20 pointer-events-none">
+                                                <ChevronUp className="w-4 h-4 text-zinc-600" />
+                                                <ChevronDown className="w-4 h-4 text-zinc-600" />
+                                            </div>
+                                            <div className="flex-1 flex items-center gap-3">
+                                                <div className="p-2 bg-orange-500/10 rounded-lg text-orange-400">
+                                                    <PanelBottom className="w-5 h-5" />
+                                                </div>
+                                                <div>
+                                                    <p className="text-sm font-bold text-orange-300">Pie de Página</p>
+                                                    <p className="text-xs text-zinc-500">Contacto, redes sociales y links</p>
+                                                </div>
+                                            </div>
+                                            <div className="px-2">
+                                                <span className="text-[9px] font-bold uppercase tracking-widest text-orange-500/70 bg-orange-500/10 px-2 py-0.5 rounded">Fijo</span>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
 
                                 {/* Menu Add Block */}
@@ -417,7 +465,107 @@ export default function BuilderClient({ initialConfig, workshop, products }: { i
                                 <ArrowLeft className="w-4 h-4" /> Volver a Capas
                             </button>
 
-                            {activeBlock && (
+                            {/* ── Footer editor ────────────────────────────────── */}
+                            {activeBlockId === 'footer' && footerBlock && (
+                                <div className="space-y-5">
+                                    <h2 className="text-lg font-black text-white flex items-center gap-3 border-b border-white/10 pb-4">
+                                        <PanelBottom className="w-5 h-5 text-orange-500" />
+                                        Pie de Página
+                                    </h2>
+
+                                    {/* Tagline */}
+                                    <div>
+                                        <label className="text-xs text-zinc-500 block mb-1.5 font-semibold">Frase / Tagline</label>
+                                        <input
+                                            value={footerBlock.content.tagline || ''}
+                                            onChange={e => handleFooterContentChange('tagline', e.target.value)}
+                                            placeholder="Especialistas en tu moto desde 2010..."
+                                            className="w-full bg-black/40 border border-white/5 rounded-lg p-3 text-sm focus:border-orange-500/50 outline-none text-white"
+                                        />
+                                    </div>
+
+                                    {/* Dirección */}
+                                    <div>
+                                        <label className="text-xs text-zinc-500 block mb-1.5 font-semibold flex items-center gap-1.5">
+                                            <MapPin className="w-3.5 h-3.5" /> Dirección
+                                        </label>
+                                        <input
+                                            value={footerBlock.content.address || ''}
+                                            onChange={e => handleFooterContentChange('address', e.target.value)}
+                                            placeholder="Calle 45 # 23-10, Ciudad"
+                                            className="w-full bg-black/40 border border-white/5 rounded-lg p-3 text-sm focus:border-orange-500/50 outline-none text-white"
+                                        />
+                                    </div>
+
+                                    {/* Horario */}
+                                    <div>
+                                        <label className="text-xs text-zinc-500 block mb-1.5 font-semibold flex items-center gap-1.5">
+                                            <Clock className="w-3.5 h-3.5" /> Horario de Atención
+                                        </label>
+                                        <input
+                                            value={footerBlock.content.hours || ''}
+                                            onChange={e => handleFooterContentChange('hours', e.target.value)}
+                                            placeholder="Lun – Sáb · 8 am – 6 pm"
+                                            className="w-full bg-black/40 border border-white/5 rounded-lg p-3 text-sm focus:border-orange-500/50 outline-none text-white"
+                                        />
+                                    </div>
+
+                                    <hr className="border-white/5" />
+                                    <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Redes Sociales</p>
+
+                                    {/* WhatsApp */}
+                                    <div>
+                                        <label className="text-xs text-zinc-500 block mb-1.5 font-semibold flex items-center gap-1.5">
+                                            <Phone className="w-3.5 h-3.5 text-emerald-400" /> WhatsApp
+                                        </label>
+                                        <div className="relative">
+                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-600 text-xs font-bold">+</span>
+                                            <input
+                                                value={footerBlock.content.whatsapp || ''}
+                                                onChange={e => handleFooterContentChange('whatsapp', e.target.value)}
+                                                placeholder="573001234567"
+                                                inputMode="tel"
+                                                className="w-full bg-black/40 border border-white/5 rounded-lg py-3 pl-6 pr-3 text-sm focus:border-emerald-500/40 outline-none text-white"
+                                            />
+                                        </div>
+                                        <p className="text-[10px] text-zinc-600 mt-1">Número completo con código de país (ej: 573001234567)</p>
+                                    </div>
+
+                                    {/* Instagram */}
+                                    <div>
+                                        <label className="text-xs text-zinc-500 block mb-1.5 font-semibold flex items-center gap-1.5">
+                                            <span className="text-pink-400 font-black text-[11px] leading-none">IG</span> Instagram
+                                        </label>
+                                        <div className="relative">
+                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-600 text-sm font-bold">@</span>
+                                            <input
+                                                value={footerBlock.content.instagram || ''}
+                                                onChange={e => handleFooterContentChange('instagram', e.target.value)}
+                                                placeholder="mitaller"
+                                                className="w-full bg-black/40 border border-white/5 rounded-lg py-3 pl-7 pr-3 text-sm focus:border-pink-500/40 outline-none text-white"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* Facebook */}
+                                    <div>
+                                        <label className="text-xs text-zinc-500 block mb-1.5 font-semibold flex items-center gap-1.5">
+                                            <span className="text-blue-400 font-black text-[11px] leading-none">fb</span> Facebook
+                                        </label>
+                                        <div className="relative">
+                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-600 text-[11px] font-bold leading-none">fb/</span>
+                                            <input
+                                                value={footerBlock.content.facebook || ''}
+                                                onChange={e => handleFooterContentChange('facebook', e.target.value)}
+                                                placeholder="mitallerpage"
+                                                className="w-full bg-black/40 border border-white/5 rounded-lg py-3 pl-8 pr-3 text-sm focus:border-blue-500/40 outline-none text-white"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {activeBlock && activeBlock.type !== 'footer' && (
                                 <div className="space-y-4">
                                     <h2 className="text-lg font-black text-white capitalize flex items-center gap-3 border-b border-white/10 pb-4">
                                         {(() => {

@@ -288,7 +288,7 @@ export default function LandingClient({ config, workshop, products, mobile, prev
                     /* --- DYNAMIC BLOCK RENDERER --- */
                     <>
                         <div className={`w-full flex flex-col pt-10 ${mobile ? 'gap-12' : 'gap-12 sm:gap-20'}`}>
-                            {config.blocks.filter(b => b.visible).map((block) => {
+                            {config.blocks.filter(b => b.visible && b.type !== 'footer').map((block) => {
                                 const p = { block, config, mobile, preview }
                                 switch (block.type) {
                                     case 'hero': return <HeroBlock key={block.id} {...p} />;
@@ -303,7 +303,7 @@ export default function LandingClient({ config, workshop, products, mobile, prev
                                 }
                             })}
                         </div>
-                        <LandingFooter config={config} workshop={workshop} preview={preview} />
+                        <LandingFooter config={config} workshop={workshop} preview={preview} mobile={mobile} />
                     </>
                 )}
             </main>

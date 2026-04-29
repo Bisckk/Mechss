@@ -1,10 +1,12 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import {
     Plus, Search, Filter, AlertCircle, Package, Edit, Trash2, Eye, EyeOff, Loader2,
-    DollarSign, TrendingUp, ShoppingBag, BarChart3, Grid3X3, List, X, ImagePlus, Tag
+    DollarSign, TrendingUp, ShoppingBag, BarChart3, Grid3X3, List, X, ImagePlus, Tag,
+    TriangleAlert
 } from 'lucide-react'
+import { gsap } from 'gsap'
 import { InventoryItem, createInventoryItemAction, updateInventoryItemAction, deleteInventoryItemAction } from '@/lib/actions/inventory'
 import ImageUploader from '@/components/ui/ImageUploader'
 
@@ -12,6 +14,24 @@ type ViewMode = 'table' | 'grid'
 
 export default function InventoryClient({ initialItems }: { initialItems: InventoryItem[] }) {
     const [items, setItems] = useState<InventoryItem[]>(initialItems)
+    const [deleteTarget, setDeleteTarget] = useState<InventoryItem | null>(null)
+    const [isDeleting, setIsDeleting] = useState(false)
+    const [deleteError, setDeleteError] = useState<string | null>(null)
+    const pageRef = useRef<HTMLDivElement>(null)
+
+    useEffect(() => {
+        const ctx = gsap.context(() => {
+            gsap.fromTo('.inv-header',
+                { opacity: 0, y: 10 },
+                { opacity: 1, y: 0, duration: 0.35, ease: 'expo.out', force3D: true }
+            )
+            gsap.fromTo('.inv-stat',
+                { opacity: 0, y: 16, scale: 0.97 },
+                { opacity: 1, y: 0, scale: 1, duration: 0.4, stagger: 0.06, ease: 'expo.out', force3D: true, delay: 0.05 }
+            )
+        }, pageRef)
+        return () => ctx.revert()
+    }, [])
     const [searchTerm, setSearchTerm] = useState('')
     const [categoryFilter, setCategoryFilter] = useState<string>('all')
     const [viewMode, setViewMode] = useState<ViewMode>('table')
@@ -107,13 +127,21 @@ export default function InventoryClient({ initialItems }: { initialItems: Invent
         setIsModalOpen(false)
     }
 
-    const handleDelete = async (id: string) => {
-        if (!confirm('¿Seguro que deseas eliminar este artículo? Esta acción no se puede deshacer.')) return
-        const res = await deleteInventoryItemAction(id)
+    const handleDelete = (item: InventoryItem) => {
+        setDeleteError(null)
+        setDeleteTarget(item)
+    }
+
+    const confirmDelete = async () => {
+        if (!deleteTarget) return
+        setIsDeleting(true)
+        const res = await deleteInventoryItemAction(deleteTarget.id)
+        setIsDeleting(false)
         if (res.ok) {
-            setItems(items.filter(i => i.id !== id))
+            setItems(prev => prev.filter(i => i.id !== deleteTarget.id))
+            setDeleteTarget(null)
         } else {
-            alert(res.error)
+            setDeleteError(res.error)
         }
     }
 
@@ -133,9 +161,9 @@ export default function InventoryClient({ initialItems }: { initialItems: Invent
     ]
 
     return (
-        <div className="space-y-6 max-w-7xl mx-auto animate-in fade-in zoom-in-95 duration-500">
+        <div ref={pageRef} className="space-y-6 max-w-7xl mx-auto">
             {/* Header */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div className="inv-header flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-3">
                         <div className="p-2 rounded-xl bg-gradient-to-br from-orange-500/20 to-orange-600/5 border border-orange-500/10">
@@ -153,7 +181,7 @@ export default function InventoryClient({ initialItems }: { initialItems: Invent
             {/* Stats Cards */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {statCards.map(card => (
-                    <div key={card.label} className={`bg-gradient-to-br ${card.color} border ${card.borderColor} rounded-2xl p-5 backdrop-blur-sm`}>
+                    <div key={card.label} className={`inv-stat bg-gradient-to-br ${card.color} border ${card.borderColor} rounded-2xl p-5 backdrop-blur-sm`}>
                         <div className="flex items-center justify-between mb-3">
                             <card.icon className={`w-5 h-5 ${card.iconColor}`} />
                             <BarChart3 className="w-4 h-4 text-zinc-600" />
@@ -278,7 +306,7 @@ export default function InventoryClient({ initialItems }: { initialItems: Invent
                                         <td className="px-6 py-4 text-right">
                                             <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                                 <button onClick={() => handleOpenModal(item)} className="p-2 text-zinc-400 hover:text-white transition-colors hover:bg-white/5 rounded-lg"><Edit className="w-4 h-4" /></button>
-                                                <button onClick={() => handleDelete(item.id)} className="p-2 text-rose-400 hover:text-rose-300 transition-colors hover:bg-rose-500/10 rounded-lg"><Trash2 className="w-4 h-4" /></button>
+                                                <button onClick={() => handleDelete(item)} className="p-2 text-rose-400 hover:text-rose-300 transition-colors hover:bg-rose-500/10 rounded-lg"><Trash2 className="w-4 h-4" /></button>
                                             </div>
                                         </td>
                                     </tr>
@@ -316,7 +344,7 @@ export default function InventoryClient({ initialItems }: { initialItems: Invent
                                     <button onClick={() => handleOpenModal(item)} className="p-1.5 bg-black/60 backdrop-blur-sm rounded-lg text-white hover:bg-black/80 transition-colors">
                                         <Edit className="w-3.5 h-3.5" />
                                     </button>
-                                    <button onClick={() => handleDelete(item.id)} className="p-1.5 bg-black/60 backdrop-blur-sm rounded-lg text-rose-400 hover:bg-black/80 transition-colors">
+                                    <button onClick={() => handleDelete(item)} className="p-1.5 bg-black/60 backdrop-blur-sm rounded-lg text-rose-400 hover:bg-black/80 transition-colors">
                                         <Trash2 className="w-3.5 h-3.5" />
                                     </button>
                                 </div>
@@ -569,6 +597,79 @@ export default function InventoryClient({ initialItems }: { initialItems: Invent
                             </button>
                         </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* ── Confirm Delete Modal ───────────────────────────── */}
+            {deleteTarget && (
+                <div className="fixed inset-0 z-[110] flex items-end sm:items-center justify-center p-0 sm:p-4">
+                    {/* Backdrop */}
+                    <div
+                        className="absolute inset-0 bg-black/70 backdrop-blur-sm animate-in fade-in duration-150"
+                        onClick={() => !isDeleting && setDeleteTarget(null)}
+                    />
+
+                    {/* Sheet / Card */}
+                    <div className="
+                        relative w-full bg-zinc-950 border border-white/10 shadow-2xl
+                        flex flex-col
+                        rounded-t-2xl sm:rounded-2xl
+                        sm:max-w-sm
+                        animate-in fade-in slide-in-from-bottom-4 sm:zoom-in-95 duration-200
+                    ">
+                        {/* Drag handle — mobile only */}
+                        <div className="flex justify-center pt-3 pb-1 sm:hidden shrink-0">
+                            <div className="w-10 h-1 rounded-full bg-white/20" />
+                        </div>
+
+                        {/* Body */}
+                        <div className="px-6 pt-5 pb-2 text-center sm:text-left">
+                            {/* Icon */}
+                            <div className="flex justify-center sm:justify-start mb-4">
+                                <div className="w-12 h-12 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center">
+                                    <TriangleAlert className="w-5 h-5 text-rose-400" />
+                                </div>
+                            </div>
+
+                            <h3 className="text-base font-bold text-white mb-1.5">
+                                ¿Eliminar producto?
+                            </h3>
+                            <p className="text-sm text-zinc-400 leading-relaxed">
+                                Estás a punto de eliminar{' '}
+                                <span className="font-semibold text-white">"{deleteTarget.name}"</span>.
+                                {' '}Esta acción no se puede deshacer.
+                            </p>
+
+                            {deleteError && (
+                                <p className="mt-3 text-xs text-rose-400 bg-rose-500/10 border border-rose-500/20 px-3 py-2 rounded-xl">
+                                    {deleteError}
+                                </p>
+                            )}
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex gap-3 px-6 py-5">
+                            <button
+                                type="button"
+                                onClick={() => setDeleteTarget(null)}
+                                disabled={isDeleting}
+                                className="flex-1 py-3 sm:py-2.5 bg-white/5 hover:bg-white/10 text-zinc-300 text-sm font-semibold rounded-xl transition-colors disabled:opacity-40"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                type="button"
+                                onClick={confirmDelete}
+                                disabled={isDeleting}
+                                className="flex-1 py-3 sm:py-2.5 bg-rose-500 hover:bg-rose-600 active:scale-[0.98] text-white text-sm font-semibold rounded-xl transition-all shadow-lg hover:shadow-rose-500/20 disabled:opacity-50 flex items-center justify-center gap-2"
+                            >
+                                {isDeleting
+                                    ? <><Loader2 className="w-4 h-4 animate-spin" /> Eliminando...</>
+                                    : <><Trash2 className="w-4 h-4" /> Eliminar</>
+                                }
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

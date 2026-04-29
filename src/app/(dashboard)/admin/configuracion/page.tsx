@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { Settings, Info, Briefcase, KeyRound, Camera, Globe } from 'lucide-react'
+import DashboardAnimator from '@/components/ui/DashboardAnimator'
 
 export const metadata = {
     title: 'Configuración | MotoFix Admin',
@@ -11,15 +12,16 @@ export default async function AdminConfiguracionPage() {
     // Future backend fetch configuration for current workshop
 
     return (
-        <div className="space-y-6 max-w-4xl mx-auto animate-in fade-in zoom-in-95 duration-500 pb-10">
+        <div className="space-y-6 max-w-4xl mx-auto pb-10">
+            <DashboardAnimator />
 
-            <div>
+            <div className="dash-header">
                 <h1 className="text-2xl font-bold text-white tracking-tight">Configuración del Taller</h1>
                 <p className="text-zinc-400 text-sm mt-1">Ajusta los detalles legales, redes sociales y tu plan actual.</p>
             </div>
 
             {/* Plan Info */}
-            <div className="bg-gradient-to-r from-orange-500/10 to-transparent border-l-4 border-orange-500 p-5 rounded-r-2xl border border-white/5 shadow-sm">
+            <div className="dash-section bg-gradient-to-r from-orange-500/10 to-transparent border-l-4 border-orange-500 p-5 rounded-r-2xl border border-white/5 shadow-sm">
                 <h2 className="text-white font-semibold flex items-center gap-2 mb-1.5"><Briefcase className="w-4 h-4 text-orange-400" /> Plan Pro Activo</h2>
                 <p className="text-sm text-zinc-400 max-w-lg leading-relaxed">Estás disfrutando de todas las características avanzadas para escalar tu taller. Renueva el 15 de Mayo de 2026.</p>
                 <button className="text-xs font-semibold text-orange-400 mt-4 hover:underline underline-offset-4 decoration-orange-500/30">Gestionar Suscripción →</button>
@@ -28,7 +30,7 @@ export default async function AdminConfiguracionPage() {
             <div className="space-y-6">
 
                 {/* Info Legal */}
-                <section className="bg-zinc-900 border border-white/5 rounded-2xl p-6 backdrop-blur-md">
+                <section className="dash-section bg-zinc-900 border border-white/5 rounded-2xl p-6 backdrop-blur-md">
                     <h2 className="text-lg font-semibold text-white mb-5 flex items-center gap-2">
                         <Info className="w-5 h-5 text-zinc-500" /> Información General y Legal
                     </h2>
@@ -50,7 +52,7 @@ export default async function AdminConfiguracionPage() {
                 </section>
 
                 {/* Redes Sociales */}
-                <section className="bg-zinc-900 border border-white/5 rounded-2xl p-6 backdrop-blur-md">
+                <section className="dash-section bg-zinc-900 border border-white/5 rounded-2xl p-6 backdrop-blur-md">
                     <h2 className="text-lg font-semibold text-white mb-5">Redes Sociales</h2>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-2">
@@ -73,7 +75,7 @@ export default async function AdminConfiguracionPage() {
                 </section>
 
                 {/* Seguridad */}
-                <section className="bg-zinc-900 border border-white/5 rounded-2xl p-6 backdrop-blur-md">
+                <section className="dash-section bg-zinc-900 border border-white/5 rounded-2xl p-6 backdrop-blur-md">
                     <h2 className="text-lg font-semibold text-white mb-5 flex items-center gap-2">
                         <KeyRound className="w-5 h-5 text-zinc-500" /> Seguridad
                     </h2>

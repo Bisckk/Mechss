@@ -17,10 +17,10 @@ export default function LoginPage() {
 
   useEffect(() => {
     const ctx = gsap.context(() => {
-      const tl = gsap.timeline({ defaults: { ease: 'power3.out' } })
+      const tl = gsap.timeline({ defaults: { ease: 'expo.out', force3D: true } })
 
-      tl.fromTo('.login-left',  { opacity: 0, x: -40 }, { opacity: 1, x: 0, duration: 0.8 })
-        .fromTo('.login-right', { opacity: 0, x: 40 },  { opacity: 1, x: 0, duration: 0.8 }, '-=0.65')
+      tl.fromTo('.login-left',  { opacity: 0, x: -32 }, { opacity: 1, x: 0, duration: 0.65 })
+        .fromTo('.login-right', { opacity: 0, x: 32 },  { opacity: 1, x: 0, duration: 0.65 }, '-=0.52')
     }, pageRef)
 
     return () => ctx.revert()

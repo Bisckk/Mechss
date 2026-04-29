@@ -20,8 +20,8 @@ export default function LoginForm() {
     const ctx = gsap.context(() => {
       gsap.fromTo(
         '.login-field',
-        { opacity: 0, y: 24 },
-        { opacity: 1, y: 0, duration: 0.5, stagger: 0.09, ease: 'power3.out', delay: 0.15 }
+        { opacity: 0, y: 18 },
+        { opacity: 1, y: 0, duration: 0.4, stagger: 0.07, ease: 'expo.out', force3D: true, delay: 0.1 }
       )
     }, formRef)
     return () => ctx.revert()

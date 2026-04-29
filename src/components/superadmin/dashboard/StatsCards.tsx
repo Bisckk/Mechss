@@ -35,8 +35,8 @@ export default function StatsCards({ data }: { data?: StatsData }) {
     const ctx = gsap.context(() => {
       gsap.fromTo(
         '.stat-card',
-        { opacity: 0, y: 28, scale: 0.97 },
-        { opacity: 1, y: 0, scale: 1, duration: 0.55, stagger: 0.09, ease: 'power3.out' }
+        { opacity: 0, y: 20, scale: 0.97 },
+        { opacity: 1, y: 0, scale: 1, duration: 0.45, stagger: 0.07, ease: 'expo.out', force3D: true }
       )
     }, ref)
     return () => ctx.revert()

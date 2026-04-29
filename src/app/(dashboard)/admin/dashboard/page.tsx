@@ -4,6 +4,7 @@ import {
     CalendarRange, Wrench, DollarSign, PackageOpen, ArrowUpRight,
     CalendarPlus, UserPlus, PackagePlus, ArrowRight
 } from 'lucide-react'
+import DashboardAnimator from '@/components/ui/DashboardAnimator'
 
 export const metadata = {
     title: 'Dashboard | MotoFix Admin',
@@ -73,9 +74,10 @@ export default async function AdminDashboardPage() {
     ]
 
     return (
-        <div className="space-y-8 animate-in fade-in zoom-in-95 duration-500 pb-10">
+        <div className="space-y-8 pb-10">
+            <DashboardAnimator />
 
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div className="dash-header flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-white tracking-tight">Bienvenido a tu Taller</h1>
                     <p className="text-zinc-400 text-sm mt-1">Resumen general de operaciones de hoy.</p>
@@ -98,9 +100,9 @@ export default async function AdminDashboardPage() {
                     <Link
                         key={i}
                         href={action.href}
-                        className={`flex flex-col items-center justify-center gap-2.5 p-4 rounded-2xl border transition-all duration-300 ${action.bg} ${action.border} group`}
+                        className={`dash-quick-action flex flex-col items-center justify-center gap-2.5 p-4 rounded-2xl border transition-[background-color,border-color,box-shadow] duration-200 ${action.bg} ${action.border} group`}
                     >
-                        <div className={`p-3 rounded-xl bg-white/5 ${action.color} group-hover:scale-110 transition-transform duration-300`}>
+                        <div className={`p-3 rounded-xl bg-white/5 ${action.color} group-hover:scale-110 transition-transform duration-200`}>
                             <action.icon className="w-5 h-5 flex-shrink-0" />
                         </div>
                         <span className="text-xs sm:text-sm font-semibold text-zinc-300 group-hover:text-white transition-colors text-center leading-tight">
@@ -115,7 +117,7 @@ export default async function AdminDashboardPage() {
                 {stats.map((stat, i) => (
                     <div
                         key={i}
-                        className="bg-zinc-900 border border-white/5 rounded-2xl p-5 hover:bg-white/[0.02] transition-colors relative overflow-hidden group"
+                        className="dash-stat bg-zinc-900 border border-white/5 rounded-2xl p-5 hover:bg-white/[0.02] transition-colors relative overflow-hidden group"
                     >
                         <div className={`absolute top-0 right-0 w-32 h-32 blur-3xl rounded-full ${stat.bgUrl} -mr-10 -mt-10 group-hover:scale-150 transition-transform duration-700 ease-out`} />
                         <div className="flex items-start justify-between relative z-10">
@@ -138,7 +140,7 @@ export default async function AdminDashboardPage() {
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
                 {/* Repairs Progress */}
-                <div className="lg:col-span-2 bg-zinc-900/50 border border-white/5 rounded-2xl p-6 backdrop-blur-xl flex flex-col">
+                <div className="dash-section lg:col-span-2 bg-zinc-900/50 border border-white/5 rounded-2xl p-6 backdrop-blur-xl flex flex-col">
                     <div className="flex justify-between items-center mb-6">
                         <h2 className="text-lg font-semibold text-white">Reparaciones en Curso</h2>
                         <button className="text-xs font-semibold text-orange-400 hover:text-orange-300 transition-colors flex items-center gap-1 group">
@@ -156,11 +158,11 @@ export default async function AdminDashboardPage() {
                 </div>
 
                 {/* Recent Activity */}
-                <div className="bg-zinc-900/50 border border-white/5 rounded-2xl p-6 backdrop-blur-xl">
+                <div className="dash-section bg-zinc-900/50 border border-white/5 rounded-2xl p-6 backdrop-blur-xl">
                     <h2 className="text-lg font-semibold text-white mb-6">Actividad Reciente</h2>
                     <div className="space-y-5">
                         {recentActivity.map((activity) => (
-                            <div key={activity.id} className="relative pl-6 before:absolute before:left-[11px] before:top-2 before:bottom-[-20px] last:before:hidden before:w-px before:bg-zinc-800">
+                            <div key={activity.id} className="dash-activity relative pl-6 before:absolute before:left-[11px] before:top-2 before:bottom-[-20px] last:before:hidden before:w-px before:bg-zinc-800">
                                 <div className="absolute left-0 top-1.5 w-6 h-6 rounded-full bg-zinc-800 border-2 border-zinc-900 flex items-center justify-center shadow-sm">
                                     <div className="w-1.5 h-1.5 rounded-full bg-orange-500" />
                                 </div>

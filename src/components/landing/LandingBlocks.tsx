@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useRef } from 'react'
+import React, { useRef, useState } from 'react'
 import { useGSAP } from '@gsap/react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
@@ -16,11 +16,12 @@ function useBlockEntrance(ref: React.RefObject<HTMLElement | null>, preview?: bo
         if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
 
         gsap.fromTo(ref.current,
-            { opacity: 0, y: 44 },
+            { opacity: 0, y: 32 },
             {
                 opacity: 1, y: 0,
-                duration: 0.75,
-                ease: 'power3.out',
+                duration: 0.6,
+                ease: 'expo.out',
+                force3D: true,
                 scrollTrigger: {
                     trigger: ref.current,
                     start: 'top 88%',
@@ -42,12 +43,12 @@ export function HeroBlock({ block, config, mobile, preview }: any) {
 
         const tl = gsap.timeline()
         tl.fromTo('.hero-title',
-            { opacity: 0, y: 36 },
-            { opacity: 1, y: 0, duration: 0.8, ease: 'power3.out' }
+            { opacity: 0, y: 28 },
+            { opacity: 1, y: 0, duration: 0.65, ease: 'expo.out', force3D: true }
         ).fromTo('.hero-sub',
-            { opacity: 0, y: 20 },
-            { opacity: 1, y: 0, duration: 0.6, ease: 'power2.out' },
-            '-=0.4'
+            { opacity: 0, y: 16 },
+            { opacity: 1, y: 0, duration: 0.5, ease: 'expo.out', force3D: true },
+            '-=0.35'
         )
     }, { scope: ref })
 
@@ -73,10 +74,10 @@ export function TrackingBlock({ block, config, code, setCode, handleSearch, isSe
         if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
 
         gsap.fromTo(ref.current,
-            { opacity: 0, y: 50, scale: 0.97 },
+            { opacity: 0, y: 36, scale: 0.97 },
             {
                 opacity: 1, y: 0, scale: 1,
-                duration: 0.8, ease: 'power3.out',
+                duration: 0.6, ease: 'expo.out', force3D: true,
                 scrollTrigger: { trigger: ref.current, start: 'top 86%', once: true }
             }
         )
@@ -133,67 +134,207 @@ export function TrackingBlock({ block, config, code, setCode, handleSearch, isSe
 
 // ─── ECOMMERCE ───────────────────────────────────────────────────────────────
 
+type ViewSize = 'sm' | 'md' | 'lg'
+
+/* Minimal icon-only view picker — top-right corner */
+function ViewPicker({ value, onChange, color }: { value: ViewSize; onChange: (v: ViewSize) => void; color: string }) {
+    const opts: { id: ViewSize; title: string; node: React.ReactNode }[] = [
+        {
+            id: 'sm', title: 'Compacto',
+            node: (
+                <svg viewBox="0 0 14 14" fill="currentColor" className="w-3 h-3">
+                    <rect x="0" y="0" width="3.5" height="3.5" rx="0.6" /><rect x="5.25" y="0" width="3.5" height="3.5" rx="0.6" /><rect x="10.5" y="0" width="3.5" height="3.5" rx="0.6" />
+                    <rect x="0" y="5.25" width="3.5" height="3.5" rx="0.6" /><rect x="5.25" y="5.25" width="3.5" height="3.5" rx="0.6" /><rect x="10.5" y="5.25" width="3.5" height="3.5" rx="0.6" />
+                    <rect x="0" y="10.5" width="3.5" height="3.5" rx="0.6" /><rect x="5.25" y="10.5" width="3.5" height="3.5" rx="0.6" /><rect x="10.5" y="10.5" width="3.5" height="3.5" rx="0.6" />
+                </svg>
+            ),
+        },
+        {
+            id: 'md', title: 'Mediano',
+            node: (
+                <svg viewBox="0 0 14 14" fill="currentColor" className="w-3 h-3">
+                    <rect x="0" y="0" width="6" height="6" rx="1" /><rect x="8" y="0" width="6" height="6" rx="1" />
+                    <rect x="0" y="8" width="6" height="6" rx="1" /><rect x="8" y="8" width="6" height="6" rx="1" />
+                </svg>
+            ),
+        },
+        {
+            id: 'lg', title: 'Grande',
+            node: (
+                <svg viewBox="0 0 14 14" fill="currentColor" className="w-3 h-3">
+                    <rect x="0" y="0" width="14" height="5.5" rx="1.2" />
+                    <rect x="0" y="8.5" width="14" height="5.5" rx="1.2" />
+                </svg>
+            ),
+        },
+    ]
+
+    return (
+        <div className="flex items-center gap-0.5 p-1 rounded-lg bg-white/[0.04] border border-white/[0.07]">
+            {opts.map(o => (
+                <button
+                    key={o.id}
+                    onClick={() => onChange(o.id)}
+                    title={o.title}
+                    className={`w-7 h-7 rounded-md flex items-center justify-center transition-all duration-150 active:scale-90 ${
+                        value === o.id ? 'shadow-sm' : 'text-zinc-600 hover:text-zinc-400'
+                    }`}
+                    style={value === o.id ? { backgroundColor: `${color}22`, color } : {}}
+                >
+                    {o.node}
+                </button>
+            ))}
+        </div>
+    )
+}
+
 export function EcommerceBlock({ block, config, products, cart, addToCart, removeFromCart, mobile, preview }: any) {
     const ref = useRef<HTMLElement>(null)
+    const [viewSize, setViewSize] = useState<ViewSize>('md')
 
     const displayProducts = products && products.length > 0 ? products : [
-        { id: 'dummy-1', name: 'Casco Integral Pro', category: 'Accesorios', sale_price: 150000, stock_quantity: 5, image_url: '' },
-        { id: 'dummy-2', name: 'Aceite Sintético 10W40', category: 'Líquidos', sale_price: 45000, stock_quantity: 12, image_url: '' },
-        { id: 'dummy-3', name: 'Pastillas de Freno', category: 'Repuestos', sale_price: 35000, stock_quantity: 8, image_url: '' },
+        { id: 'dummy-1', name: 'Casco Integral Pro',      category: 'Accesorios',  sale_price: 150000, stock_quantity: 5,  image_url: '' },
+        { id: 'dummy-2', name: 'Aceite Sintético 10W40',  category: 'Líquidos',    sale_price:  45000, stock_quantity: 12, image_url: '' },
+        { id: 'dummy-3', name: 'Pastillas de Freno',      category: 'Repuestos',   sale_price:  35000, stock_quantity: 8,  image_url: '' },
+        { id: 'dummy-4', name: 'Llantas Deportivas',      category: 'Repuestos',   sale_price: 280000, stock_quantity: 3,  image_url: '' },
+        { id: 'dummy-5', name: 'Kit Cadena y Piñón',      category: 'Transmisión', sale_price:  95000, stock_quantity: 7,  image_url: '' },
+        { id: 'dummy-6', name: 'Manubrio Ergonómico',     category: 'Accesorios',  sale_price:  60000, stock_quantity: 10, image_url: '' },
     ]
+
+    const gridCols = {
+        sm: mobile ? 'grid-cols-3' : 'grid-cols-3 sm:grid-cols-4',
+        md: mobile ? 'grid-cols-2' : 'grid-cols-2 sm:grid-cols-3',
+        lg: mobile ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2',
+    }[viewSize]
+
+    const imgH = {
+        sm: mobile ? 'h-[72px]'  : 'h-28',
+        md: mobile ? 'h-[120px]' : 'h-44',
+        lg: mobile ? 'h-[160px]' : 'h-52',
+    }[viewSize]
 
     useGSAP(() => {
         if (preview) return
         if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
-
         gsap.fromTo('.ecom-header',
-            { opacity: 0, y: 28 },
-            { opacity: 1, y: 0, duration: 0.6, ease: 'power3.out',
+            { opacity: 0, y: 20 },
+            { opacity: 1, y: 0, duration: 0.5, ease: 'expo.out', force3D: true,
               scrollTrigger: { trigger: ref.current, start: 'top 88%', once: true } }
         )
         gsap.fromTo('.ecom-card',
-            { opacity: 0, y: 40 },
-            { opacity: 1, y: 0, duration: 0.6, ease: 'power2.out', stagger: 0.12,
+            { opacity: 0, y: 28 },
+            { opacity: 1, y: 0, duration: 0.48, ease: 'expo.out', force3D: true, stagger: 0.07,
               scrollTrigger: { trigger: ref.current, start: 'top 82%', once: true } }
         )
     }, { scope: ref })
 
     return (
         <section ref={ref} className="w-full px-4">
-            <div className="ecom-header text-center mb-8">
-                <h2 className={`font-black text-white mb-3 tracking-tight ${mobile ? 'text-2xl' : 'text-2xl sm:text-4xl'}`}>
+
+            {/* ── Header ─────────────────────────────────────────────────── */}
+            <div className={`ecom-header mb-7 text-center ${!mobile && 'relative'}`}>
+                <h2 className={`font-black text-white tracking-tight leading-tight ${mobile ? 'text-2xl' : 'text-2xl sm:text-4xl'}`}>
                     {block.content.title || 'Catálogo Exclusivo'}
                 </h2>
-                <p className="text-zinc-400 text-sm font-medium">{block.content.subtitle || 'Equipamiento, repuestos y accesorios de primer nivel.'}</p>
+                <p className="text-zinc-500 text-sm mt-1.5">
+                    {block.content.subtitle || 'Equipamiento, repuestos y accesorios de primer nivel.'}
+                </p>
+
+                {/* En desktop: flota arriba-derecha sin afectar el flujo del texto.
+                    En mobile: fluye debajo del subtítulo, alineado a la derecha. */}
+                <div className={mobile ? 'flex justify-end mt-3' : 'absolute right-0 top-0'}>
+                    <ViewPicker value={viewSize} onChange={setViewSize} color={config.primary_color} />
+                </div>
             </div>
 
-            <div className={`grid gap-4 ${mobile ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'}`}>
+            {/* ── Grid ───────────────────────────────────────────────────── */}
+            <div className={`grid gap-3 ${gridCols}`}>
                 {displayProducts.map((product: any) => {
-                    const qtyInCart = cart ? cart[product.id] || 0 : 0
+                    const qty = cart ? cart[product.id] || 0 : 0
+                    const soldOut = product.stock_quantity <= 0
+
                     return (
-                        <div key={product.id} className="ecom-card bg-zinc-950/80 backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden group flex flex-col">
-                            <div className="h-40 bg-zinc-900 border-b border-white/5 flex items-center justify-center p-4 overflow-hidden">
+                        <div
+                            key={product.id}
+                            className="ecom-card group relative flex flex-col rounded-2xl overflow-hidden border border-white/[0.08] bg-zinc-900/60 backdrop-blur-md hover:border-white/20 transition-all duration-300"
+                        >
+                            {/* ── Image area ─────────────────────────────── */}
+                            <div
+                                className={`${imgH} relative flex items-center justify-center overflow-hidden shrink-0`}
+                                style={{ background: `linear-gradient(135deg, #18181b 0%, ${config.primary_color}0a 100%)` }}
+                            >
                                 {product.image_url ? (
-                                    <img src={product.image_url} alt={product.name} className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-500" />
+                                    <img
+                                        src={product.image_url}
+                                        alt={product.name}
+                                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                    />
                                 ) : (
-                                    <Package className="w-12 h-12 opacity-20 group-hover:scale-110 transition-transform duration-500" />
+                                    <Package
+                                        className="opacity-[0.12] group-hover:opacity-[0.18] transition-opacity duration-300"
+                                        style={{ width: viewSize === 'sm' ? 24 : viewSize === 'lg' ? 44 : 32, height: viewSize === 'sm' ? 24 : viewSize === 'lg' ? 44 : 32 }}
+                                    />
+                                )}
+
+                                {/* Category badge */}
+                                {viewSize !== 'sm' && (
+                                    <span
+                                        className="absolute top-2.5 left-2.5 text-[9px] font-black uppercase tracking-[0.15em] px-2 py-0.5 rounded-full backdrop-blur-sm"
+                                        style={{ backgroundColor: `${config.primary_color}22`, color: config.primary_color, border: `1px solid ${config.primary_color}30` }}
+                                    >
+                                        {product.category}
+                                    </span>
+                                )}
+
+                                {/* Sold-out overlay */}
+                                {soldOut && (
+                                    <div className="absolute inset-0 bg-zinc-950/70 flex items-center justify-center backdrop-blur-[2px]">
+                                        <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400 border border-zinc-700 px-3 py-1 rounded-full">Agotado</span>
+                                    </div>
                                 )}
                             </div>
-                            <div className="p-4 flex-1 flex flex-col">
-                                <span className="text-[10px] uppercase font-bold text-zinc-500 tracking-wider mb-1">{product.category}</span>
-                                <h3 className="text-sm font-bold text-white leading-tight mb-3 flex-1">{product.name}</h3>
-                                <div className="flex items-center justify-between gap-2 flex-wrap mt-auto">
-                                    <span className="text-base font-black text-white whitespace-nowrap">${Number(product.sale_price).toLocaleString()}</span>
-                                    {qtyInCart > 0 ? (
-                                        <div className="flex items-center gap-2 bg-white/5 rounded-full px-2 py-1 border border-white/10">
-                                            <button onClick={() => removeFromCart && removeFromCart(product.id)} className="w-6 h-6 rounded-full flex items-center justify-center bg-zinc-800 text-white text-sm">-</button>
-                                            <span className="font-bold text-sm min-w-[1ch] text-center">{qtyInCart}</span>
-                                            <button onClick={() => addToCart && addToCart(product.id)} className="w-6 h-6 rounded-full flex items-center justify-center text-black font-bold text-sm" style={{ backgroundColor: config.primary_color }}>+</button>
-                                        </div>
-                                    ) : (
-                                        <button onClick={() => addToCart && addToCart(product.id)} disabled={product.stock_quantity <= 0} className={`px-3 py-1.5 font-bold text-black text-xs rounded-lg shrink-0 disabled:opacity-50`} style={{ backgroundColor: config.primary_color }}>
-                                            {product.stock_quantity > 0 ? 'Agregar' : 'Agotado'}
-                                        </button>
+
+                            {/* ── Info area ──────────────────────────────── */}
+                            <div className={`flex flex-col flex-1 ${viewSize === 'sm' ? 'p-2.5 gap-2' : viewSize === 'lg' ? 'p-4 gap-3' : 'p-3 gap-2.5'}`}>
+                                <h3
+                                    className={`font-bold text-white leading-snug ${viewSize === 'sm' ? 'text-[11px]' : viewSize === 'lg' ? 'text-base' : 'text-sm'}`}
+                                >
+                                    {product.name}
+                                </h3>
+
+                                <div className="flex items-center justify-between gap-2 mt-auto flex-wrap">
+                                    {/* Price */}
+                                    <span
+                                        className={`font-black leading-none ${viewSize === 'sm' ? 'text-sm' : viewSize === 'lg' ? 'text-xl' : 'text-base'}`}
+                                        style={{ color: config.primary_color }}
+                                    >
+                                        ${Number(product.sale_price).toLocaleString()}
+                                    </span>
+
+                                    {/* Cart controls */}
+                                    {!soldOut && (
+                                        qty > 0 ? (
+                                            <div className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.05] px-1.5 py-1">
+                                                <button
+                                                    onClick={() => removeFromCart && removeFromCart(product.id)}
+                                                    className="w-5 h-5 rounded-full flex items-center justify-center bg-white/10 hover:bg-white/20 text-white text-xs font-bold transition-colors"
+                                                >−</button>
+                                                <span className="font-bold text-xs text-white min-w-[14px] text-center">{qty}</span>
+                                                <button
+                                                    onClick={() => addToCart && addToCart(product.id)}
+                                                    className="w-5 h-5 rounded-full flex items-center justify-center text-black text-xs font-bold transition-opacity hover:opacity-80"
+                                                    style={{ backgroundColor: config.primary_color }}
+                                                >+</button>
+                                            </div>
+                                        ) : (
+                                            <button
+                                                onClick={() => addToCart && addToCart(product.id)}
+                                                className={`font-bold text-black rounded-xl transition-opacity hover:opacity-85 active:scale-95 ${viewSize === 'sm' ? 'text-[10px] px-2 py-1' : 'text-xs px-3 py-1.5'}`}
+                                                style={{ backgroundColor: config.primary_color }}
+                                            >
+                                                + Agregar
+                                            </button>
+                                        )
                                     )}
                                 </div>
                             </div>
@@ -203,11 +344,9 @@ export function EcommerceBlock({ block, config, products, cart, addToCart, remov
             </div>
 
             {(!products || products.length === 0) && (
-                <div className="text-center mt-6">
-                    <p className="text-orange-500 text-xs border border-orange-500/20 bg-orange-500/10 inline-block px-4 py-2 rounded-full font-bold">
-                        Productos de prueba. Agrega inventario real en el módulo de Inventario.
-                    </p>
-                </div>
+                <p className="text-center mt-5 text-orange-500 text-xs border border-orange-500/20 bg-orange-500/10 inline-block px-4 py-2 rounded-full font-bold w-full text-center">
+                    Productos de prueba · Agrega inventario real en el módulo de Inventario
+                </p>
             )}
         </section>
     )
@@ -229,13 +368,13 @@ export function ServicesBlock({ block, config, mobile, preview }: any) {
         if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
 
         gsap.fromTo('.srv-header',
-            { opacity: 0, y: 28 },
-            { opacity: 1, y: 0, duration: 0.6, ease: 'power3.out',
+            { opacity: 0, y: 20 },
+            { opacity: 1, y: 0, duration: 0.5, ease: 'expo.out', force3D: true,
               scrollTrigger: { trigger: ref.current, start: 'top 88%', once: true } }
         )
         gsap.fromTo('.srv-card',
-            { opacity: 0, y: 36, scale: 0.96 },
-            { opacity: 1, y: 0, scale: 1, duration: 0.55, ease: 'back.out(1.2)', stagger: 0.1,
+            { opacity: 0, y: 28, scale: 0.97 },
+            { opacity: 1, y: 0, scale: 1, duration: 0.45, ease: 'expo.out', force3D: true, stagger: 0.08,
               scrollTrigger: { trigger: ref.current, start: 'top 82%', once: true } }
         )
     }, { scope: ref })
@@ -274,13 +413,13 @@ export function GalleryBlock({ block, config, mobile, preview }: any) {
         if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
 
         gsap.fromTo('.gal-header',
-            { opacity: 0, y: 24 },
-            { opacity: 1, y: 0, duration: 0.6, ease: 'power3.out',
+            { opacity: 0, y: 18 },
+            { opacity: 1, y: 0, duration: 0.5, ease: 'expo.out', force3D: true,
               scrollTrigger: { trigger: ref.current, start: 'top 88%', once: true } }
         )
         gsap.fromTo('.gal-img',
-            { opacity: 0, scale: 1.06 },
-            { opacity: 1, scale: 1, duration: 1, ease: 'power2.out',
+            { opacity: 0, scale: 1.04 },
+            { opacity: 1, scale: 1, duration: 0.75, ease: 'expo.out', force3D: true,
               scrollTrigger: { trigger: ref.current, start: 'top 82%', once: true } }
         )
     }, { scope: ref })
@@ -323,16 +462,16 @@ export function TestimonialsBlock({ block, config, mobile, preview }: any) {
         if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
 
         gsap.fromTo('.tst-header',
-            { opacity: 0, y: 24 },
-            { opacity: 1, y: 0, duration: 0.6, ease: 'power3.out',
+            { opacity: 0, y: 18 },
+            { opacity: 1, y: 0, duration: 0.5, ease: 'expo.out', force3D: true,
               scrollTrigger: { trigger: ref.current, start: 'top 88%', once: true } }
         )
         // Alternating slide: even from left, odd from right
         const cards = ref.current?.querySelectorAll('.tst-card')
         cards?.forEach((card, i) => {
             gsap.fromTo(card,
-                { opacity: 0, x: i % 2 === 0 ? -32 : 32 },
-                { opacity: 1, x: 0, duration: 0.65, ease: 'power2.out', delay: i * 0.1,
+                { opacity: 0, x: i % 2 === 0 ? -24 : 24 },
+                { opacity: 1, x: 0, duration: 0.5, ease: 'expo.out', force3D: true, delay: i * 0.08,
                   scrollTrigger: { trigger: ref.current, start: 'top 82%', once: true } }
             )
         })
@@ -385,13 +524,13 @@ export function FaqBlock({ block, config, mobile, preview }: any) {
         if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
 
         gsap.fromTo('.faq-header',
-            { opacity: 0, y: 24 },
-            { opacity: 1, y: 0, duration: 0.6, ease: 'power3.out',
+            { opacity: 0, y: 18 },
+            { opacity: 1, y: 0, duration: 0.5, ease: 'expo.out', force3D: true,
               scrollTrigger: { trigger: ref.current, start: 'top 88%', once: true } }
         )
         gsap.fromTo('.faq-item',
-            { opacity: 0, y: 20 },
-            { opacity: 1, y: 0, duration: 0.45, ease: 'power2.out', stagger: 0.08,
+            { opacity: 0, y: 14 },
+            { opacity: 1, y: 0, duration: 0.4, ease: 'expo.out', force3D: true, stagger: 0.07,
               scrollTrigger: { trigger: ref.current, start: 'top 84%', once: true } }
         )
     }, { scope: ref })
@@ -430,15 +569,15 @@ export function ContactBlock({ block, config, mobile, preview }: any) {
         if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
 
         gsap.fromTo('.cnt-header',
-            { opacity: 0, y: 24 },
-            { opacity: 1, y: 0, duration: 0.6, ease: 'power3.out',
+            { opacity: 0, y: 18 },
+            { opacity: 1, y: 0, duration: 0.5, ease: 'expo.out', force3D: true,
               scrollTrigger: { trigger: ref.current, start: 'top 88%', once: true } }
         )
         const cards = ref.current?.querySelectorAll('.cnt-card')
         cards?.forEach((card, i) => {
             gsap.fromTo(card,
-                { opacity: 0, x: i === 0 ? -28 : 28 },
-                { opacity: 1, x: 0, duration: 0.6, ease: 'power2.out', delay: 0.1,
+                { opacity: 0, x: i === 0 ? -22 : 22 },
+                { opacity: 1, x: 0, duration: 0.5, ease: 'expo.out', force3D: true, delay: 0.08,
                   scrollTrigger: { trigger: ref.current, start: 'top 84%', once: true } }
             )
         })

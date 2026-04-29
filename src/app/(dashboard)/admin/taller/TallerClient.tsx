@@ -1,10 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import {
     Wrench, Loader2, Package, CheckCircle, Clock, AlertTriangle,
     Search, RefreshCw, ChevronRight, User, Phone, Hash, FileText
 } from 'lucide-react'
+import { gsap } from 'gsap'
 import { getActiveRepairsAction, updateRepairStatusAction } from '@/lib/actions/admin'
 import RepairLogModal from '@/components/admin/taller/RepairLogModal'
 
@@ -41,6 +42,19 @@ export default function TallerClient() {
     const [isDragging, setIsDragging] = useState(false)
 
     useEffect(() => { loadRepairs() }, [])
+
+    // Animate columns + header once data loads
+    useEffect(() => {
+        if (isLoading) return
+        gsap.fromTo('.taller-header',
+            { opacity: 0, y: 10 },
+            { opacity: 1, y: 0, duration: 0.35, ease: 'expo.out', force3D: true }
+        )
+        gsap.fromTo('.kanban-col',
+            { opacity: 0, y: 22, scale: 0.98 },
+            { opacity: 1, y: 0, scale: 1, duration: 0.45, stagger: 0.07, ease: 'expo.out', force3D: true, delay: 0.05 }
+        )
+    }, [isLoading])
 
     const loadRepairs = async () => {
         setIsLoading(true)
@@ -104,7 +118,7 @@ export default function TallerClient() {
     return (
         <div className="space-y-6">
             {/* Header */}
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="taller-header flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-2xl font-black text-white flex items-center gap-3">
                         <div className="w-10 h-10 rounded-xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center shadow-[0_0_15px_rgba(249,115,22,0.15)]">
@@ -147,7 +161,7 @@ export default function TallerClient() {
                     return (
                         <div
                             key={col.key}
-                            className={`flex-shrink-0 w-[300px] flex flex-col rounded-2xl border transition-all duration-300 ${isOver
+                            className={`kanban-col flex-shrink-0 w-[300px] flex flex-col rounded-2xl border transition-[border-color,background-color,box-shadow] duration-200 ${isOver
                                     ? `border-${col.color}-500/50 bg-${col.color}-500/5 shadow-[0_0_30px_rgba(0,0,0,0.3)]`
                                     : 'border-white/5 bg-zinc-900/30'
                                 }`}

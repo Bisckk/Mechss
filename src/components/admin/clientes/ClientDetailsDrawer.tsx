@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { X, User, Car, CalendarIcon, PenLine, Plus, Phone, Mail, FileText, Loader2, Thermometer, Zap } from 'lucide-react'
+import { gsap } from 'gsap'
 import { getClientVehiclesAction } from '@/lib/actions/admin'
 import VehicleHistoryModal from './VehicleHistoryModal'
 import AddVehicleModal from './AddVehicleModal'
@@ -35,10 +36,23 @@ export default function ClientDetailsDrawer({ isOpen, onClose, client }: ClientD
     const [isLoadingVehicles, setIsLoadingVehicles] = useState(false)
     const [selectedVehicleHistory, setSelectedVehicleHistory] = useState<DbVehicle | null>(null)
     const [showAddVehicle, setShowAddVehicle] = useState(false)
+    const backdropRef = useRef<HTMLDivElement>(null)
+    const modalRef = useRef<HTMLDivElement>(null)
 
     useEffect(() => {
         if (isOpen && client) {
             loadVehicles()
+            // Animate in
+            if (backdropRef.current && modalRef.current) {
+                gsap.fromTo(backdropRef.current,
+                    { opacity: 0 },
+                    { opacity: 1, duration: 0.25, ease: 'expo.out', force3D: true }
+                )
+                gsap.fromTo(modalRef.current,
+                    { opacity: 0, scale: 0.95, y: 12 },
+                    { opacity: 1, scale: 1, y: 0, duration: 0.35, ease: 'expo.out', force3D: true }
+                )
+            }
         }
     }, [isOpen, client])
 
@@ -61,12 +75,13 @@ export default function ClientDetailsDrawer({ isOpen, onClose, client }: ClientD
         <div className="fixed inset-x-0 bottom-0 top-16 z-[100] flex items-center justify-center p-4 sm:p-6">
             {/* Backdrop */}
             <div
-                className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
+                ref={backdropRef}
+                className="absolute inset-0 bg-black/60 backdrop-blur-sm"
                 onClick={onClose}
             />
 
             {/* Modal */}
-            <div className="relative w-full max-w-2xl bg-zinc-950 border border-white/10 rounded-2xl flex flex-col shadow-2xl animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-hidden">
+            <div ref={modalRef} className="relative w-full max-w-2xl bg-zinc-950 border border-white/10 rounded-2xl flex flex-col shadow-2xl max-h-[90vh] overflow-hidden">
                 {/* Header */}
                 <div className="flex items-center justify-between p-5 border-b border-white/5 bg-zinc-900/50 shrink-0">
                     <div className="flex items-center gap-4">
