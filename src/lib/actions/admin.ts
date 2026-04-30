@@ -1,7 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 
 // ── Types ──────────────────────────────────────────────────
 
@@ -259,7 +259,13 @@ export async function getVehicleRepairsAction(
 
         const { data, error } = await supabase
             .from('repairs')
-            .select('id, tracking_code, status, reported_issue, created_at, estimated_completion')
+            .select(`
+                id, tracking_code, status, reported_issue, created_at,
+                estimated_completion, estimated_cost, final_cost, vehicle_brand,
+                vehicle_model, vehicle_year, vehicle_plate,
+                clients:client_id ( id, full_name, phone ),
+                mechanic:mechanic_id ( id, full_name )
+            `)
             .eq('vehicle_id', vehicleId)
             .order('created_at', { ascending: false })
 
@@ -285,9 +291,16 @@ export type CreateServiceOrderData = {
 // Create a new repair service order
 export async function createServiceOrderAction(
     fd: CreateServiceOrderData
-): Promise<ActionResult<{ id: string }>> {
+): Promise<ActionResult<{ id: string; tracking_code: string; workshop_name: string; workshop_slug: string; workshop_logo: string | null }>> {
     try {
-        const { supabase, workshopId } = await getWorkshopId()
+        const { supabase, workshopId, userId } = await getWorkshopId()
+
+        // Get workshop info for ticket
+        const { data: workshop } = await supabase
+            .from('workshops')
+            .select('name, slug, logo_url')
+            .eq('id', workshopId)
+            .single()
 
         const { data, error } = await supabase
             .from('repairs')
@@ -304,22 +317,31 @@ export async function createServiceOrderAction(
                 vehicle_plate: fd.vehicle_plate || null,
                 status: 'received'
             } as any)
-            .select('id')
+            .select('id, tracking_code')
             .single()
 
         if (error) return { ok: false, error: error.message }
 
-        // Let's create the first update log reflecting "Created"
         await supabase.from('repair_updates').insert({
             repair_id: (data as any).id,
-            user_id: (await getWorkshopId()).userId,
+            user_id: userId,
             status: 'received',
             notes: 'Vehículo recibido en taller.',
             photos: [],
             is_client_visible: true
         } as any)
 
-        return { ok: true, data: { id: (data as any).id } }
+        revalidatePath('/admin/taller')
+        return {
+            ok: true,
+            data: {
+                id: (data as any).id,
+                tracking_code: (data as any).tracking_code,
+                workshop_name: (workshop as any)?.name || '',
+                workshop_slug: (workshop as any)?.slug || '',
+                workshop_logo: (workshop as any)?.logo_url || null,
+            }
+        }
     } catch (e: any) {
         return { ok: false, error: e.message || 'Error al procesar la orden' }
     }
@@ -437,21 +459,29 @@ export async function updateAppointmentAction(
 // ── Workshop / Taller Actions ──────────────────────────────
 
 // Get all active repairs (not delivered/cancelled) for the workshop
-export async function getActiveRepairsAction(): Promise<ActionResult<any[]>> {
+// If mechanicId is provided, only returns repairs assigned to that mechanic
+export async function getActiveRepairsAction(mechanicId?: string): Promise<ActionResult<any[]>> {
     try {
         const { supabase, workshopId } = await getWorkshopId()
 
-        const { data, error } = await supabase
+        let query = supabase
             .from('repairs')
             .select(`
                 id, tracking_code, status, reported_issue, created_at,
                 estimated_completion, estimated_cost, vehicle_brand, vehicle_model,
-                vehicle_year, vehicle_plate, vehicle_id,
-                clients:client_id ( id, full_name, phone )
+                vehicle_year, vehicle_plate, vehicle_id, mechanic_id,
+                clients:client_id ( id, full_name, phone ),
+                mechanic:mechanic_id ( id, full_name )
             `)
             .eq('workshop_id', workshopId)
             .not('status', 'in', '("delivered","cancelled")')
             .order('created_at', { ascending: false })
+
+        if (mechanicId) {
+            query = query.eq('mechanic_id', mechanicId)
+        }
+
+        const { data, error } = await query
 
         if (error) return { ok: false, error: error.message }
         return { ok: true, data: data || [] }
@@ -503,6 +533,160 @@ export async function getRepairUpdatesAction(
             .select('id, status, notes, photos, is_client_visible, created_at')
             .eq('repair_id', repairId)
             .order('created_at', { ascending: false })
+
+        if (error) return { ok: false, error: error.message }
+        return { ok: true, data: data || [] }
+    } catch (e: any) {
+        return { ok: false, error: e.message }
+    }
+}
+
+// ── Photo Upload Action ────────────────────────────────────
+
+export async function uploadRepairPhotoAction(
+    repairId: string,
+    base64Data: string,
+    fileName: string
+): Promise<ActionResult<{ url: string }>> {
+    try {
+        const { supabase } = await getAuthClient()
+
+        // Convert base64 to buffer
+        const base64 = base64Data.split(',')[1]
+        const buffer = Buffer.from(base64, 'base64')
+        const blob = new Blob([buffer], { type: 'image/jpeg' })
+
+        const path = `repairs/${repairId}/${Date.now()}_${fileName.replace(/[^a-zA-Z0-9._-]/g, '_')}.jpg`
+
+        const { data, error } = await supabase.storage
+            .from('repair-photos')
+            .upload(path, blob, { contentType: 'image/jpeg', upsert: false })
+
+        if (error) return { ok: false, error: error.message }
+
+        const { data: { publicUrl } } = supabase.storage
+            .from('repair-photos')
+            .getPublicUrl(data.path)
+
+        return { ok: true, data: { url: publicUrl } }
+    } catch (e: any) {
+        return { ok: false, error: e.message || 'Error al subir foto' }
+    }
+}
+
+// ── Employee Actions ───────────────────────────────────────
+
+export interface CreateEmployeeData {
+    full_name: string
+    email: string
+    phone?: string
+    role: 'mechanic' | 'receptionist'
+    password: string
+}
+
+export async function getWorkshopEmployeesAction(): Promise<ActionResult<any[]>> {
+    try {
+        const { supabase, workshopId } = await getWorkshopId()
+
+        const { data, error } = await supabase
+            .from('users')
+            .select('id, full_name, email, phone, role, is_active, avatar_url, created_at')
+            .eq('workshop_id', workshopId)
+            .in('role', ['mechanic', 'receptionist'])
+            .order('created_at', { ascending: false })
+
+        if (error) return { ok: false, error: error.message }
+        return { ok: true, data: data || [] }
+    } catch (e: any) {
+        return { ok: false, error: e.message }
+    }
+}
+
+export async function createEmployeeAction(
+    fd: CreateEmployeeData
+): Promise<ActionResult<{ id: string }>> {
+    try {
+        const { workshopId } = await getWorkshopId()
+        const adminClient = createAdminClient()
+
+        const { data, error: authErr } = await adminClient.auth.admin.createUser({
+            email: fd.email,
+            password: fd.password,
+            email_confirm: true,
+            user_metadata: {
+                role: fd.role,
+                workshop_id: workshopId,
+                full_name: fd.full_name,
+            },
+        })
+
+        if (authErr) return { ok: false, error: authErr.message }
+
+        // Patch phone if provided (trigger may not include it)
+        if (fd.phone) {
+            await adminClient
+                .from('users')
+                .update({ phone: fd.phone })
+                .eq('id', data.user.id)
+        }
+
+        revalidatePath('/admin/empleados')
+        return { ok: true, data: { id: data.user.id } }
+    } catch (e: any) {
+        return { ok: false, error: e.message || 'Error al crear empleado' }
+    }
+}
+
+export async function toggleEmployeeStatusAction(
+    userId: string,
+    isActive: boolean
+): Promise<ActionResult> {
+    try {
+        const adminClient = createAdminClient()
+
+        const { error } = await adminClient
+            .from('users')
+            .update({ is_active: isActive })
+            .eq('id', userId)
+
+        if (error) return { ok: false, error: error.message }
+
+        revalidatePath('/admin/empleados')
+        return { ok: true, data: null }
+    } catch (e: any) {
+        return { ok: false, error: e.message }
+    }
+}
+
+export async function resetEmployeePasswordAction(
+    userId: string,
+    newPassword: string
+): Promise<ActionResult> {
+    try {
+        const adminClient = createAdminClient()
+
+        const { error } = await adminClient.auth.admin.updateUserById(userId, {
+            password: newPassword,
+        })
+
+        if (error) return { ok: false, error: error.message }
+        return { ok: true, data: null }
+    } catch (e: any) {
+        return { ok: false, error: e.message }
+    }
+}
+
+export async function getWorkshopMechanicsAction(): Promise<ActionResult<any[]>> {
+    try {
+        const { supabase, workshopId } = await getWorkshopId()
+
+        const { data, error } = await supabase
+            .from('users')
+            .select('id, full_name, email, phone')
+            .eq('workshop_id', workshopId)
+            .eq('role', 'mechanic')
+            .eq('is_active', true)
+            .order('full_name', { ascending: true })
 
         if (error) return { ok: false, error: error.message }
         return { ok: true, data: data || [] }

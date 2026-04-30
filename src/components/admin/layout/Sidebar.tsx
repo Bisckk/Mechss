@@ -23,31 +23,46 @@ interface Props {
     user: SidebarUser
 }
 
-const NAV = [
+type NavItem = { href: string; label: string; mechLabel?: string; Icon: React.ElementType; roles: string[] }
+type NavSection = { seccion: string; items: NavItem[] }
+
+const ALL_NAV: NavSection[] = [
     {
         seccion: 'Operaciones',
         items: [
-            { href: '/admin/dashboard', label: 'Dashboard', Icon: LayoutDashboard },
-            { href: '/admin/agenda', label: 'Agenda & Citas', Icon: CalendarRange },
-            { href: '/admin/taller', label: 'Taller Activo', Icon: Wrench },
+            { href: '/admin/dashboard', label: 'Dashboard', Icon: LayoutDashboard, roles: ['admin', 'receptionist'] },
+            { href: '/admin/agenda', label: 'Agenda & Citas', Icon: CalendarRange, roles: ['admin', 'receptionist'] },
+            { href: '/admin/taller', label: 'Taller Activo', mechLabel: 'Mis Órdenes', Icon: Wrench, roles: ['admin', 'receptionist', 'mechanic'] },
         ],
     },
     {
         seccion: 'Gestión',
         items: [
-            { href: '/admin/clientes', label: 'Clientes', Icon: UsersRound },
-            { href: '/admin/inventario', label: 'Inventario', Icon: Package },
-            { href: '/admin/empleados', label: 'Empleados', Icon: UserCog },
+            { href: '/admin/clientes', label: 'Clientes', Icon: UsersRound, roles: ['admin', 'receptionist'] },
+            { href: '/admin/inventario', label: 'Inventario', Icon: Package, roles: ['admin', 'receptionist'] },
+            { href: '/admin/empleados', label: 'Empleados', Icon: UserCog, roles: ['admin'] },
         ],
     },
     {
         seccion: 'Herramientas',
         items: [
-            { href: '/admin/builder', label: 'Landing Page', Icon: Laptop },
-            { href: '/admin/configuracion', label: 'Configuración', Icon: Settings },
+            { href: '/admin/builder', label: 'Landing Page', Icon: Laptop, roles: ['admin'] },
+            { href: '/admin/configuracion', label: 'Configuración', Icon: Settings, roles: ['admin'] },
         ],
     },
 ]
+
+const ROLE_COLORS: Record<string, string> = {
+    admin: 'from-orange-600 to-orange-500 border-orange-400/30',
+    receptionist: 'from-blue-600 to-blue-500 border-blue-400/30',
+    mechanic: 'from-emerald-600 to-emerald-500 border-emerald-400/30',
+}
+
+const ROLE_LABELS: Record<string, string> = {
+    admin: 'Administrador',
+    receptionist: 'Recepcionista',
+    mechanic: 'Mecánico',
+}
 
 export default function Sidebar({ mobileOpen, onMobileClose, user }: Props) {
     const pathname = usePathname()
@@ -56,7 +71,16 @@ export default function Sidebar({ mobileOpen, onMobileClose, user }: Props) {
     const drawerRef = useRef<HTMLDivElement>(null)
     const didAnimate = useRef(false)
 
-    // Entrance stagger for nav items (desktop, once)
+    const filteredNav = ALL_NAV.map(group => ({
+        ...group,
+        items: group.items
+            .filter(item => item.roles.includes(user.role))
+            .map(item => ({
+                ...item,
+                label: (item.mechLabel && user.role === 'mechanic') ? item.mechLabel : item.label,
+            })),
+    })).filter(group => group.items.length > 0)
+
     useEffect(() => {
         if (didAnimate.current) return
         didAnimate.current = true
@@ -67,7 +91,6 @@ export default function Sidebar({ mobileOpen, onMobileClose, user }: Props) {
         )
     }, [])
 
-    // Mobile drawer animation
     useEffect(() => {
         const backdrop = backdropRef.current
         const drawer = drawerRef.current
@@ -94,19 +117,18 @@ export default function Sidebar({ mobileOpen, onMobileClose, user }: Props) {
     const isActive = (href: string) =>
         href === '/admin/dashboard' ? pathname === href : pathname.startsWith(href)
 
-    // ── Shared inner content ─────────────────────────────────
     const SidebarContent = ({ mobile = false }: { mobile?: boolean }) => (
         <div className="flex flex-col h-full bg-zinc-950/40 backdrop-blur-2xl border-r border-white/5 shadow-[2px_0_16px_rgba(0,0,0,0.5)]">
 
             {/* Logo Area */}
             <div className="flex items-center justify-between h-20 px-6 flex-shrink-0">
-                <Link href="/admin/dashboard" className="flex items-center gap-3.5 min-w-0 group">
+                <Link href="/admin/taller" className="flex items-center gap-3.5 min-w-0 group">
                     <div className="w-8 h-8 rounded-[10px] bg-gradient-to-tr from-orange-600 to-orange-400 flex items-center justify-center shadow-md shadow-orange-500/20 group-hover:scale-105 group-hover:shadow-orange-500/40 transition-all duration-300">
                         <Wrench className="w-4 h-4 text-white" />
                     </div>
                     <div className="min-w-0 flex flex-col justify-center">
                         <span className="text-[16px] font-semibold text-white tracking-tight leading-none block">
-                            Taller Admin
+                            {user.role === 'mechanic' ? 'Mi Panel' : 'Taller Admin'}
                         </span>
                         <span className="text-[10px] text-zinc-500 font-medium tracking-wide block mt-1 uppercase">
                             MotoFix Platform
@@ -126,7 +148,7 @@ export default function Sidebar({ mobileOpen, onMobileClose, user }: Props) {
 
             {/* Nav */}
             <nav className="flex-1 overflow-y-auto px-4 pt-2 pb-6 space-y-7 scrollbar-none">
-                {NAV.map((group) => (
+                {filteredNav.map((group) => (
                     <div key={group.seccion}>
                         <p className="px-3 mb-2 text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
                             {group.seccion}
@@ -147,6 +169,9 @@ export default function Sidebar({ mobileOpen, onMobileClose, user }: Props) {
                                                     : 'text-zinc-400 hover:text-zinc-100 hover:bg-white/5 active:scale-[0.98] border border-transparent'}
                       `}
                                         >
+                                            {active && (
+                                                <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-orange-500 rounded-r-full" />
+                                            )}
                                             <Icon className={`flex-shrink-0 transition-transform duration-300 ${active ? 'text-orange-400' : 'text-zinc-500 group-hover:scale-110'} w-[18px] h-[18px]`} />
                                             <span className="truncate">{label}</span>
                                         </Link>
@@ -158,13 +183,21 @@ export default function Sidebar({ mobileOpen, onMobileClose, user }: Props) {
                 ))}
             </nav>
 
+            {/* Mechanic role badge */}
+            {user.role === 'mechanic' && (
+                <div className="mx-4 mb-3 flex items-center gap-2 px-3 py-2 bg-emerald-500/5 border border-emerald-500/15 rounded-xl">
+                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    <p className="text-[11px] text-emerald-400/80 font-medium">Vista de Mecánico</p>
+                </div>
+            )}
+
             {/* User footer */}
             <div className="flex-shrink-0 px-4 py-5 border-t border-white/5 bg-gradient-to-b from-transparent to-black/20">
                 <div className="flex items-center gap-3 px-3 py-2.5 rounded-2xl bg-white/[0.03] border border-white/5 hover:bg-white/[0.06] transition-colors cursor-pointer group">
-                    <Avatar name={user.full_name} />
+                    <Avatar name={user.full_name} role={user.role} />
                     <div className="overflow-hidden min-w-0 flex-1">
                         <p className="text-[13px] font-medium text-white truncate leading-tight group-hover:opacity-90 transition-opacity">{user.full_name}</p>
-                        <p className="text-[11px] text-zinc-500 truncate mt-0.5 capitalize">{user.role}</p>
+                        <p className="text-[11px] text-zinc-500 truncate mt-0.5">{ROLE_LABELS[user.role] ?? user.role}</p>
                     </div>
                 </div>
 
@@ -206,9 +239,10 @@ export default function Sidebar({ mobileOpen, onMobileClose, user }: Props) {
     )
 }
 
-function Avatar({ name }: { name: string }) {
+function Avatar({ name, role }: { name: string; role: string }) {
+    const colors = ROLE_COLORS[role] ?? ROLE_COLORS.admin
     return (
-        <div className="w-8 h-8 rounded-full bg-gradient-to-t from-orange-600 to-orange-500 border border-orange-400/30 flex items-center justify-center flex-shrink-0 shadow-sm">
+        <div className={`w-8 h-8 rounded-full bg-gradient-to-t ${colors} border flex items-center justify-center flex-shrink-0 shadow-sm`}>
             <span className="text-xs font-bold text-white drop-shadow-md">
                 {name.charAt(0).toUpperCase()}
             </span>

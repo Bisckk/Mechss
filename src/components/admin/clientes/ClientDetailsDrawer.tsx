@@ -72,7 +72,7 @@ export default function ClientDetailsDrawer({ isOpen, onClose, client }: ClientD
     const color = colors[client.full_name.charCodeAt(0) % colors.length]
 
     return (
-        <div className="fixed inset-x-0 bottom-0 top-16 z-[100] flex items-center justify-center p-4 sm:p-6">
+        <div className="fixed inset-x-0 bottom-0 top-16 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-6">
             {/* Backdrop */}
             <div
                 ref={backdropRef}
@@ -81,7 +81,12 @@ export default function ClientDetailsDrawer({ isOpen, onClose, client }: ClientD
             />
 
             {/* Modal */}
-            <div ref={modalRef} className="relative w-full max-w-2xl bg-zinc-950 border border-white/10 rounded-2xl flex flex-col shadow-2xl max-h-[90vh] overflow-hidden">
+            <div ref={modalRef} className="relative w-full max-w-2xl bg-zinc-950 border-0 sm:border border-white/10 rounded-t-2xl sm:rounded-2xl flex flex-col shadow-2xl h-[92dvh] sm:max-h-[90vh] overflow-hidden">
+                {/* Mobile drag handle */}
+                <div className="sm:hidden flex justify-center pt-3 pb-1 shrink-0">
+                    <div className="w-10 h-1 bg-white/15 rounded-full" />
+                </div>
+
                 {/* Header */}
                 <div className="flex items-center justify-between p-5 border-b border-white/5 bg-zinc-900/50 shrink-0">
                     <div className="flex items-center gap-4">
@@ -233,6 +238,7 @@ export default function ClientDetailsDrawer({ isOpen, onClose, client }: ClientD
                 onClose={() => setSelectedVehicleHistory(null)}
                 vehicle={selectedVehicleHistory}
                 clientId={client.id}
+                clientName={client.full_name}
             />
 
             {/* Add Vehicle Sub-Modal */}
