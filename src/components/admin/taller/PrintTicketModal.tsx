@@ -54,7 +54,7 @@ export default function PrintTicketModal({ open, onClose, data }: Props) {
         } else {
             gsap.to(backdrop, {
                 opacity: 0, duration: 0.22, ease: 'expo.in',
-                onComplete: () => gsap.set(backdrop, { display: 'none' })
+                onComplete: () => { gsap.set(backdrop, { display: 'none' }) }
             })
         }
     }, [open])

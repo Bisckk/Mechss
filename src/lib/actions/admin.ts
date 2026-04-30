@@ -530,12 +530,35 @@ export async function getRepairUpdatesAction(
 
         const { data, error } = await supabase
             .from('repair_updates')
-            .select('id, status, notes, photos, is_client_visible, created_at')
+            .select('id, status, notes, photos, is_client_visible, created_at, author:user_id(full_name)')
             .eq('repair_id', repairId)
             .order('created_at', { ascending: false })
 
         if (error) return { ok: false, error: error.message }
         return { ok: true, data: data || [] }
+    } catch (e: any) {
+        return { ok: false, error: e.message }
+    }
+}
+
+export async function getRepairDetailAction(repairId: string): Promise<ActionResult<any>> {
+    try {
+        const { supabase } = await getAuthClient()
+
+        const { data, error } = await supabase
+            .from('repairs')
+            .select(`
+                id, tracking_code, status, reported_issue, created_at, completed_at,
+                estimated_cost, final_cost, vehicle_brand, vehicle_model,
+                vehicle_year, vehicle_plate,
+                clients:client_id(full_name, phone, email),
+                mechanic:mechanic_id(full_name)
+            `)
+            .eq('id', repairId)
+            .single()
+
+        if (error) return { ok: false, error: error.message }
+        return { ok: true, data }
     } catch (e: any) {
         return { ok: false, error: e.message }
     }

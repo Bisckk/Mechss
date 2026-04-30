@@ -71,7 +71,7 @@ export default function CreateRepairDrawer({ open, onClose, onCreated }: Props) 
             gsap.to(backdrop, { opacity: 1, duration: 0.3, ease: 'expo.out', force3D: true })
             gsap.to(drawer, { x: '0%', duration: 0.38, ease: 'expo.out', force3D: true })
         } else {
-            gsap.to(backdrop, { opacity: 0, duration: 0.22, ease: 'expo.in', onComplete: () => gsap.set(backdrop, { display: 'none' }) })
+            gsap.to(backdrop, { opacity: 0, duration: 0.22, ease: 'expo.in', onComplete: () => { gsap.set(backdrop, { display: 'none' }) } })
             gsap.to(drawer, { x: '100%', duration: 0.26, ease: 'expo.in', force3D: true })
         }
     }, [open])

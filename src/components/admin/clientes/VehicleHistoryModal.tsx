@@ -1,13 +1,14 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { gsap } from 'gsap'
 import {
     X, Wrench, CalendarIcon, Loader2, ChevronRight, FileText,
     AlertCircle, Clock, Plus, Printer, Share2, Eye, User
 } from 'lucide-react'
 import { getVehicleRepairsAction } from '@/lib/actions/admin'
 import CreateServiceOrderModal from './CreateServiceOrderModal'
-import RepairLogModal from '@/components/admin/taller/RepairLogModal'
+import RepairDetailDrawer from '@/components/admin/taller/RepairDetailDrawer'
 
 type DbVehicle = {
     id: string
@@ -66,7 +67,16 @@ export default function VehicleHistoryModal({ isOpen, onClose, vehicle, clientId
         if (!vehicle) return
         setIsLoading(true)
         const res = await getVehicleRepairsAction(vehicle.id)
-        if (res.ok) setRepairs(res.data as RepairLog[])
+        if (res.ok) {
+            setRepairs(res.data as RepairLog[])
+            // Stagger repair rows after data loads
+            requestAnimationFrame(() => {
+                gsap.fromTo('.vh-repair-row',
+                    { opacity: 0, y: 14 },
+                    { opacity: 1, y: 0, duration: 0.35, stagger: 0.06, ease: 'expo.out', force3D: true }
+                )
+            })
+        }
         setIsLoading(false)
     }
 
@@ -197,7 +207,7 @@ export default function VehicleHistoryModal({ isOpen, onClose, vehicle, clientId
                                         const date = new Date(repair.created_at)
 
                                         return (
-                                            <div key={repair.id} className="relative flex flex-col sm:flex-row gap-4 sm:gap-6 group">
+                                            <div key={repair.id} className="vh-repair-row relative flex flex-col sm:flex-row gap-4 sm:gap-6 group">
                                                 {/* Timeline Node */}
                                                 <div className="hidden sm:flex shrink-0 w-14 flex-col items-center z-10 pt-2">
                                                     <div className={`w-4 h-4 rounded-full border-2 border-zinc-950 transition-colors
@@ -309,12 +319,11 @@ export default function VehicleHistoryModal({ isOpen, onClose, vehicle, clientId
                 </div>
             </div>
 
-            {/* Repair Detail Modal */}
-            <RepairLogModal
+            {/* Repair Detail Drawer */}
+            <RepairDetailDrawer
                 isOpen={!!selectedRepair}
                 onClose={() => setSelectedRepair(null)}
-                repair={selectedRepair}
-                userRole="admin"
+                repairId={selectedRepair?.id ?? null}
             />
 
             {/* Create Service Order Modal */}

@@ -1,14 +1,17 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useLayoutEffect, useRef } from 'react'
 import {
     Wrench, Package, CheckCircle, Clock, AlertTriangle,
     Search, RefreshCw, ChevronRight, User, Hash, FileText, Plus, UserCog
 } from 'lucide-react'
 import { gsap } from 'gsap'
+import { Flip } from 'gsap/Flip'
 import { getActiveRepairsAction, updateRepairStatusAction } from '@/lib/actions/admin'
 import RepairLogModal from '@/components/admin/taller/RepairLogModal'
 import CreateRepairDrawer from '@/components/admin/taller/CreateRepairDrawer'
+
+gsap.registerPlugin(Flip)
 
 type Repair = {
     id: string
@@ -52,6 +55,7 @@ export default function TallerClient({ userRole, userId }: Props) {
     const [dragOverCol, setDragOverCol] = useState<string | null>(null)
     const [isDragging, setIsDragging] = useState(false)
     const [showCreateDrawer, setShowCreateDrawer] = useState(false)
+    const flipStateRef = useRef<ReturnType<typeof Flip.getState> | null>(null)
 
     useEffect(() => { loadRepairs() }, [])
 
@@ -66,6 +70,19 @@ export default function TallerClient({ userRole, userId }: Props) {
             { opacity: 1, y: 0, scale: 1, duration: 0.45, stagger: 0.07, ease: 'expo.out', force3D: true, delay: 0.05 }
         )
     }, [isLoading])
+
+    // Animate cards flying to their new column after a drop
+    useLayoutEffect(() => {
+        if (!flipStateRef.current) return
+        Flip.from(flipStateRef.current, {
+            duration: 0.42,
+            ease: 'expo.out',
+            stagger: 0.03,
+            absolute: true,
+            nested: true,
+        })
+        flipStateRef.current = null
+    }, [repairs])
 
     const loadRepairs = async () => {
         setIsLoading(true)
@@ -95,6 +112,9 @@ export default function TallerClient({ userRole, userId }: Props) {
 
         const repair = repairs.find(r => r.id === repairId)
         if (!repair || repair.status === newStatus) return
+
+        // Capture Flip state before React moves the card to another column
+        flipStateRef.current = Flip.getState('[data-flip-id]')
 
         // Optimistic update
         setRepairs(prev => prev.map(r => r.id === repairId ? { ...r, status: newStatus } : r))
@@ -324,6 +344,7 @@ function RepairCard({
 
     return (
         <div
+            data-flip-id={repair.id}
             draggable
             onDragStart={(e) => onDragStart(e, repair.id)}
             onDragEnd={onDragEnd}
@@ -395,4 +416,3 @@ function RepairCard({
     )
 }
 
-function isMechanic(role: string) { return role === 'mechanic' }
