@@ -23,7 +23,7 @@ function generatePassword() {
 
 export default function NewEmployeeDrawer({ open, onClose, onCreated }: Props) {
     const backdropRef = useRef<HTMLDivElement>(null)
-    const drawerRef = useRef<HTMLDivElement>(null)
+    const modalRef = useRef<HTMLDivElement>(null)
     const [isPending, startTransition] = useTransition()
 
     const [form, setForm] = useState({
@@ -36,17 +36,17 @@ export default function NewEmployeeDrawer({ open, onClose, onCreated }: Props) {
 
     useEffect(() => {
         const backdrop = backdropRef.current
-        const drawer = drawerRef.current
-        if (!backdrop || !drawer) return
+        const modal = modalRef.current
+        if (!backdrop || !modal) return
 
         if (open) {
-            gsap.set(backdrop, { display: 'block', opacity: 0 })
-            gsap.set(drawer, { x: '100%' })
-            gsap.to(backdrop, { opacity: 1, duration: 0.3, ease: 'expo.out', force3D: true })
-            gsap.to(drawer, { x: '0%', duration: 0.38, ease: 'expo.out', force3D: true })
+            gsap.set(backdrop, { display: 'flex', opacity: 0 })
+            gsap.set(modal, { y: 32, opacity: 0, scale: 0.97 })
+            gsap.to(backdrop, { opacity: 1, duration: 0.25, ease: 'expo.out' })
+            gsap.to(modal, { y: 0, opacity: 1, scale: 1, duration: 0.35, ease: 'expo.out', force3D: true })
         } else {
+            gsap.to(modal, { y: 20, opacity: 0, scale: 0.97, duration: 0.2, ease: 'expo.in' })
             gsap.to(backdrop, { opacity: 0, duration: 0.22, ease: 'expo.in', onComplete: () => { gsap.set(backdrop, { display: 'none' }) } })
-            gsap.to(drawer, { x: '100%', duration: 0.26, ease: 'expo.in', force3D: true })
         }
     }, [open])
 
@@ -89,172 +89,141 @@ export default function NewEmployeeDrawer({ open, onClose, onCreated }: Props) {
         setForm(f => ({ ...f, [k]: e.target.value }))
 
     return (
-        <>
+        <div
+            ref={backdropRef}
+            className="fixed inset-0 z-[160] bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4"
+            style={{ display: 'none' }}
+            onClick={e => { if (e.target === e.currentTarget) handleClose() }}
+        >
             <div
-                ref={backdropRef}
-                className="fixed inset-0 z-[160] bg-black/50 backdrop-blur-sm"
-                style={{ display: 'none' }}
-                onClick={handleClose}
-            />
-
-            <div
-                ref={drawerRef}
-                className="fixed top-0 right-0 z-[170] h-full w-full sm:w-[480px] flex flex-col"
-                style={{ transform: 'translateX(100%)' }}
+                ref={modalRef}
+                className="bg-zinc-950 border border-white/10 rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-lg max-h-[92vh] flex flex-col overflow-hidden"
+                onClick={e => e.stopPropagation()}
             >
-                <div className="flex flex-col h-full bg-zinc-950 border-l border-white/8 shadow-2xl overflow-y-auto">
+                {/* Header */}
+                <div className="flex items-center justify-between px-6 py-5 border-b border-white/6 flex-shrink-0">
+                    <div>
+                        <h2 className="text-lg font-bold text-white tracking-tight">Nuevo Empleado</h2>
+                        <p className="text-zinc-500 text-xs mt-0.5">Crea acceso para un mecánico o recepcionista</p>
+                    </div>
+                    <button onClick={handleClose} className="p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-white/8 transition-colors">
+                        <X className="w-5 h-5" />
+                    </button>
+                </div>
 
-                    {/* Header */}
-                    <div className="flex items-center justify-between px-6 py-5 border-b border-white/6 flex-shrink-0">
-                        <div>
-                            <h2 className="text-lg font-bold text-white tracking-tight">Nuevo Empleado</h2>
-                            <p className="text-zinc-500 text-xs mt-0.5">Crea acceso para un mecánico o recepcionista</p>
+                {/* Scrollable form */}
+                <form id="employee-form" onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-6 py-6 space-y-6">
+
+                    {/* Role selector */}
+                    <div className="space-y-2">
+                        <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Rol</label>
+                        <div className="grid grid-cols-2 gap-3">
+                            {ROLES.map(({ value, label, icon: Icon, color }) => {
+                                const active = form.role === value
+                                return (
+                                    <button
+                                        key={value}
+                                        type="button"
+                                        onClick={() => setForm(f => ({ ...f, role: value }))}
+                                        className={`flex items-center gap-3 px-4 py-3.5 rounded-2xl border text-sm font-semibold transition-all duration-200 active:scale-95
+                                            ${active
+                                                ? value === 'mechanic'
+                                                    ? 'bg-orange-500/10 border-orange-500/40 text-orange-400 shadow-[0_0_20px_rgba(249,115,22,0.1)]'
+                                                    : 'bg-blue-500/10 border-blue-500/40 text-blue-400 shadow-[0_0_20px_rgba(59,130,246,0.1)]'
+                                                : 'bg-white/[0.02] border-white/8 text-zinc-400 hover:text-white hover:bg-white/5'
+                                            }`}
+                                    >
+                                        <Icon className="w-4 h-4 flex-shrink-0" />
+                                        {label}
+                                    </button>
+                                )
+                            })}
                         </div>
-                        <button onClick={handleClose} className="p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-white/8 transition-colors">
-                            <X className="w-5 h-5" />
-                        </button>
                     </div>
 
-                    {/* Form */}
-                    <form onSubmit={handleSubmit} className="flex-1 px-6 py-6 space-y-6">
+                    {/* Personal info */}
+                    <div className="space-y-3">
+                        <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Información personal</label>
+                        <InputField icon={User} type="text" placeholder="Nombre completo" value={form.full_name} onChange={set('full_name')} autoComplete="off" />
+                        <InputField icon={Mail} type="email" placeholder="Correo electrónico" value={form.email} onChange={set('email')} autoComplete="off" />
+                        <InputField icon={Phone} type="tel" placeholder="Teléfono (opcional)" value={form.phone} onChange={set('phone')} />
+                    </div>
 
-                        {/* Role selector */}
-                        <div className="space-y-2">
-                            <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Rol</label>
-                            <div className="grid grid-cols-2 gap-3">
-                                {ROLES.map(({ value, label, icon: Icon, color }) => {
-                                    const active = form.role === value
-                                    return (
-                                        <button
-                                            key={value}
-                                            type="button"
-                                            onClick={() => setForm(f => ({ ...f, role: value }))}
-                                            className={`flex items-center gap-3 px-4 py-3.5 rounded-2xl border text-sm font-semibold transition-all duration-200 active:scale-95
-                                                ${active
-                                                    ? value === 'mechanic'
-                                                        ? 'bg-orange-500/10 border-orange-500/40 text-orange-400 shadow-[0_0_20px_rgba(249,115,22,0.1)]'
-                                                        : 'bg-blue-500/10 border-blue-500/40 text-blue-400 shadow-[0_0_20px_rgba(59,130,246,0.1)]'
-                                                    : 'bg-white/[0.02] border-white/8 text-zinc-400 hover:text-white hover:bg-white/5'
-                                                }`}
-                                        >
-                                            <Icon className="w-4 h-4 flex-shrink-0" />
-                                            {label}
-                                        </button>
-                                    )
-                                })}
-                            </div>
+                    {/* Password */}
+                    <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                            <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Contraseña de acceso</label>
+                            <button
+                                type="button"
+                                onClick={handleGenerate}
+                                className="flex items-center gap-1.5 text-xs text-orange-400 hover:text-orange-300 font-medium transition-colors"
+                            >
+                                <RefreshCw className="w-3 h-3" />
+                                Generar
+                            </button>
                         </div>
 
-                        {/* Personal info */}
-                        <div className="space-y-4">
-                            <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Información personal</label>
-
-                            <div className="space-y-3">
-                                <InputField
-                                    icon={User}
-                                    type="text"
-                                    placeholder="Nombre completo"
-                                    value={form.full_name}
-                                    onChange={set('full_name')}
-                                    autoComplete="off"
-                                />
-                                <InputField
-                                    icon={Mail}
-                                    type="email"
-                                    placeholder="Correo electrónico"
-                                    value={form.email}
-                                    onChange={set('email')}
-                                    autoComplete="off"
-                                />
-                                <InputField
-                                    icon={Phone}
-                                    type="tel"
-                                    placeholder="Teléfono (opcional)"
-                                    value={form.phone}
-                                    onChange={set('phone')}
-                                />
-                            </div>
-                        </div>
-
-                        {/* Password */}
-                        <div className="space-y-3">
-                            <div className="flex items-center justify-between">
-                                <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Contraseña de acceso</label>
-                                <button
-                                    type="button"
-                                    onClick={handleGenerate}
-                                    className="flex items-center gap-1.5 text-xs text-orange-400 hover:text-orange-300 font-medium transition-colors"
-                                >
-                                    <RefreshCw className="w-3 h-3" />
-                                    Generar
-                                </button>
-                            </div>
-
-                            <div className="relative">
-                                <input
-                                    type={showPassword ? 'text' : 'password'}
-                                    placeholder="Contraseña (mín. 8 caracteres)"
-                                    value={form.password}
-                                    onChange={set('password')}
-                                    className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-orange-500/50 focus:bg-white/[0.06] transition-all pr-11 font-mono"
-                                />
-                                <button
-                                    type="button"
-                                    onClick={() => setShowPassword(v => !v)}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition-colors"
-                                >
-                                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                                </button>
-                            </div>
-
+                        <div className="relative">
                             <input
                                 type={showPassword ? 'text' : 'password'}
-                                placeholder="Confirmar contraseña"
-                                value={form.confirm_password}
-                                onChange={set('confirm_password')}
-                                className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-orange-500/50 focus:bg-white/[0.06] transition-all font-mono"
+                                placeholder="Contraseña (mín. 8 caracteres)"
+                                value={form.password}
+                                onChange={set('password')}
+                                className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-orange-500/50 focus:bg-white/[0.06] transition-all pr-11 font-mono"
                             />
-
-                            {form.password && form.confirm_password && form.password !== form.confirm_password && (
-                                <p className="text-xs text-rose-400">Las contraseñas no coinciden</p>
-                            )}
+                            <button
+                                type="button"
+                                onClick={() => setShowPassword(v => !v)}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition-colors"
+                            >
+                                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            </button>
                         </div>
 
-                        {/* Error */}
-                        {error && (
-                            <div className="bg-rose-500/10 border border-rose-500/20 rounded-xl px-4 py-3 text-sm text-rose-400">
-                                {error}
-                            </div>
+                        <input
+                            type={showPassword ? 'text' : 'password'}
+                            placeholder="Confirmar contraseña"
+                            value={form.confirm_password}
+                            onChange={set('confirm_password')}
+                            className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-orange-500/50 focus:bg-white/[0.06] transition-all font-mono"
+                        />
+
+                        {form.password && form.confirm_password && form.password !== form.confirm_password && (
+                            <p className="text-xs text-rose-400">Las contraseñas no coinciden</p>
                         )}
-
-                        {/* Info tip */}
-                        <div className="bg-white/[0.02] border border-white/6 rounded-xl px-4 py-3 text-xs text-zinc-500 leading-relaxed">
-                            El empleado recibirá acceso a la plataforma con estas credenciales. Compártelas de forma segura.
-                        </div>
-                    </form>
-
-                    {/* Footer */}
-                    <div className="flex-shrink-0 px-6 py-4 border-t border-white/6 flex gap-3">
-                        <button
-                            type="button"
-                            onClick={handleClose}
-                            className="flex-1 py-3 rounded-xl border border-white/10 text-sm text-zinc-400 hover:text-white hover:bg-white/5 transition-all font-medium active:scale-95"
-                        >
-                            Cancelar
-                        </button>
-                        <button
-                            type="submit"
-                            form="employee-form"
-                            onClick={handleSubmit}
-                            disabled={isPending}
-                            className="flex-1 py-3 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold transition-all shadow-lg hover:shadow-orange-500/25 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                        >
-                            {isPending ? <><Loader2 className="w-4 h-4 animate-spin" /> Creando...</> : 'Crear Empleado'}
-                        </button>
                     </div>
+
+                    {error && (
+                        <div className="bg-rose-500/10 border border-rose-500/20 rounded-xl px-4 py-3 text-sm text-rose-400">
+                            {error}
+                        </div>
+                    )}
+
+                    <div className="bg-white/[0.02] border border-white/6 rounded-xl px-4 py-3 text-xs text-zinc-500 leading-relaxed">
+                        El empleado deberá elegir su propia contraseña la primera vez que inicie sesión.
+                    </div>
+                </form>
+
+                {/* Footer */}
+                <div className="flex-shrink-0 px-6 py-4 border-t border-white/6 flex gap-3">
+                    <button
+                        type="button"
+                        onClick={handleClose}
+                        className="flex-1 py-3 rounded-xl border border-white/10 text-sm text-zinc-400 hover:text-white hover:bg-white/5 transition-all font-medium active:scale-95"
+                    >
+                        Cancelar
+                    </button>
+                    <button
+                        type="submit"
+                        form="employee-form"
+                        disabled={isPending}
+                        className="flex-1 py-3 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold transition-all shadow-lg hover:shadow-orange-500/25 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    >
+                        {isPending ? <><Loader2 className="w-4 h-4 animate-spin" /> Creando...</> : 'Crear Empleado'}
+                    </button>
                 </div>
             </div>
-        </>
+        </div>
     )
 }
 

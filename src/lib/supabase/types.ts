@@ -5,7 +5,7 @@
 export type UserRole = 'superadmin' | 'admin' | 'receptionist' | 'mechanic'
 export type PlanStatus = 'active' | 'inactive' | 'trial'
 export type AppointmentStatus = 'pending' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled'
-export type RepairStatus = 'received' | 'diagnosing' | 'waiting_parts' | 'in_repair' | 'quality_check' | 'ready' | 'delivered'
+export type RepairStatus = 'received' | 'in_progress' | 'repairing' | 'waiting_parts' | 'completed' | 'delivered' | 'diagnosing' | 'in_repair' | 'quality_check' | 'ready'
 export type PaymentStatus = 'pending' | 'partial' | 'paid' | 'refunded'
 export type AccountingType = 'income' | 'expense'
 
@@ -66,7 +66,7 @@ type InventoryRow = {
 
 type RepairRow = {
   id: string; workshop_id: string; client_id: string; appointment_id: string | null
-  mechanic_id: string | null; tracking_code: string; vehicle_brand: string | null
+  mechanic_id: string | null; vehicle_id: string | null; tracking_code: string; vehicle_brand: string | null
   vehicle_model: string | null; vehicle_year: number | null; vehicle_plate: string | null
   vehicle_vin: string | null; mileage: number | null; reported_issue: string
   diagnosis: string | null; status: RepairStatus; estimated_cost: number | null

@@ -16,7 +16,7 @@ export default async function AdminDashboardPage() {
     // Mock queries to show structural approach
     const [{ count: todayAppointments }, { count: runningRepairs }, { count: lowStock }] = await Promise.all([
         supabase.from('appointments').select('*', { count: 'exact', head: true }).eq('status', 'scheduled'),
-        supabase.from('repairs').select('*', { count: 'exact', head: true }).in('status', ['received', 'diagnosing', 'waiting_parts', 'in_repair', 'quality_check']),
+        supabase.from('repairs').select('*', { count: 'exact', head: true }).neq('status', 'delivered'),
         supabase.from('inventory').select('*', { count: 'exact', head: true }).lt('quantity', 5),
     ])
 

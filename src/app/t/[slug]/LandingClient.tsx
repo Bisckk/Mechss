@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Search, Loader2, Wrench, Clock, CheckCircle, Package, AlertTriangle, ArrowLeft, Camera, ChevronDown, MapPin, Phone, Zap } from 'lucide-react'
+import { Search, Loader2, Wrench, Clock, CheckCircle, Package, AlertTriangle, ArrowLeft, Camera, ChevronDown, MapPin, Phone, Zap, Hash, X } from 'lucide-react'
 import { lookupTrackingCodeAction } from '@/lib/actions/tracking'
 import { HeroBlock, TrackingBlock, EcommerceBlock, ServicesBlock, GalleryBlock, TestimonialsBlock, FaqBlock, ContactBlock } from '@/components/landing/LandingBlocks'
 import LandingFooter from '@/components/landing/LandingFooter'
@@ -51,6 +51,8 @@ export default function LandingClient({ config, workshop, products, mobile, prev
     const [isSearching, setIsSearching] = useState(false)
     const [trackingData, setTrackingData] = useState<any>(null)
     const [error, setError] = useState('')
+    const [showTrackingPopup, setShowTrackingPopup] = useState(false)
+    const [popupCode, setPopupCode] = useState('')
 
     // Cart State
     const [cart, setCart] = useState<Record<string, number>>({})
@@ -115,6 +117,23 @@ export default function LandingClient({ config, workshop, products, mobile, prev
         const res = await lookupTrackingCodeAction(code.trim())
         if (res.ok) {
             setTrackingData(res.data)
+        } else {
+            setError(res.error)
+        }
+        setIsSearching(false)
+    }
+
+    const handlePopupSearch = async (e: React.FormEvent) => {
+        e.preventDefault()
+        if (!popupCode.trim()) return
+        setIsSearching(true)
+        setError('')
+
+        const res = await lookupTrackingCodeAction(popupCode.trim())
+        if (res.ok) {
+            setTrackingData(res.data)
+            setCode(popupCode)
+            setShowTrackingPopup(false)
         } else {
             setError(res.error)
         }
@@ -307,6 +326,60 @@ export default function LandingClient({ config, workshop, products, mobile, prev
                     </>
                 )}
             </main>
+
+            {/* Floating Tracking Button — always visible, not dependent on builder blocks */}
+            {!trackingData && !preview && (
+                <>
+                    <button
+                        onClick={() => setShowTrackingPopup(v => !v)}
+                        className="fixed bottom-6 right-6 z-40 flex items-center gap-2 px-4 py-3 rounded-full shadow-2xl font-bold text-sm text-white transition-all active:scale-95 hover:scale-105"
+                        style={{ backgroundColor: config.primary_color }}
+                        title="Consultar estado de mi vehículo"
+                    >
+                        <Hash className="w-4 h-4" />
+                        <span className="hidden sm:inline">Rastrear mi orden</span>
+                    </button>
+
+                    {showTrackingPopup && (
+                        <div className="fixed bottom-20 right-4 sm:right-6 z-40 w-[calc(100vw-2rem)] sm:w-80 bg-zinc-950 border border-white/10 rounded-2xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom-4 fade-in duration-200">
+                            <div className="flex items-center justify-between px-4 py-3 border-b border-white/8">
+                                <div className="flex items-center gap-2">
+                                    <div className="w-6 h-6 rounded-lg flex items-center justify-center" style={{ backgroundColor: `${config.primary_color}20` }}>
+                                        <Wrench className="w-3.5 h-3.5" style={{ color: config.primary_color }} />
+                                    </div>
+                                    <p className="text-sm font-bold text-white">Consultar mi orden</p>
+                                </div>
+                                <button onClick={() => setShowTrackingPopup(false)} className="p-1 text-zinc-500 hover:text-white transition-colors">
+                                    <X className="w-4 h-4" />
+                                </button>
+                            </div>
+                            <form onSubmit={handlePopupSearch} className="p-4 space-y-3">
+                                <p className="text-xs text-zinc-500">Ingresa el código de seguimiento que encontrás en tu ticket de recibo.</p>
+                                <div className="relative">
+                                    <Hash className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+                                    <input
+                                        type="text"
+                                        placeholder="Ej: ABC123"
+                                        value={popupCode}
+                                        onChange={e => setPopupCode(e.target.value.toUpperCase())}
+                                        className="w-full bg-white/[0.05] border border-white/10 rounded-xl pl-9 pr-4 py-2.5 text-sm text-white font-mono placeholder:text-zinc-600 focus:outline-none focus:border-orange-500/50 transition-all uppercase"
+                                        autoFocus
+                                    />
+                                </div>
+                                {error && <p className="text-xs text-rose-400">{error}</p>}
+                                <button
+                                    type="submit"
+                                    disabled={isSearching || !popupCode.trim()}
+                                    className="w-full py-2.5 rounded-xl text-sm font-bold text-white transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                                    style={{ backgroundColor: config.primary_color }}
+                                >
+                                    {isSearching ? <><Loader2 className="w-4 h-4 animate-spin" /> Buscando...</> : <><Search className="w-4 h-4" /> Ver estado</>}
+                                </button>
+                            </form>
+                        </div>
+                    )}
+                </>
+            )}
 
             {/* Floating Checkout CTA */}
             {totalCartItems > 0 && (

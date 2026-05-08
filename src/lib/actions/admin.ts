@@ -293,49 +293,57 @@ export async function createServiceOrderAction(
     fd: CreateServiceOrderData
 ): Promise<ActionResult<{ id: string; tracking_code: string; workshop_name: string; workshop_slug: string; workshop_logo: string | null }>> {
     try {
-        const { supabase, workshopId, userId } = await getWorkshopId()
+        // getWorkshopId() validates the session and resolves the correct workshopId
+        // (including the superadmin case). We then use the admin client for the
+        // INSERT so RLS policies never block it regardless of the user's role.
+        const { workshopId, userId } = await getWorkshopId()
+        const adminClient = await createAdminClient()
 
         // Get workshop info for ticket
-        const { data: workshop } = await supabase
+        const { data: workshop } = await adminClient
             .from('workshops')
             .select('name, slug, logo_url')
             .eq('id', workshopId)
             .single()
 
-        const { data, error } = await supabase
+        const { data, error } = await adminClient
             .from('repairs')
             .insert({
-                workshop_id: workshopId,
-                client_id: fd.client_id,
-                vehicle_id: fd.vehicle_id,
+                workshop_id:    workshopId,
+                client_id:      fd.client_id,
+                vehicle_id:     fd.vehicle_id,
                 reported_issue: fd.reported_issue,
                 estimated_cost: fd.estimated_cost || null,
-                mechanic_id: fd.mechanic_id || null,
-                vehicle_brand: fd.vehicle_brand || null,
-                vehicle_model: fd.vehicle_model || null,
-                vehicle_year: fd.vehicle_year || null,
-                vehicle_plate: fd.vehicle_plate || null,
-                status: 'received'
+                mechanic_id:    fd.mechanic_id || null,
+                vehicle_brand:  fd.vehicle_brand || null,
+                vehicle_model:  fd.vehicle_model || null,
+                vehicle_year:   fd.vehicle_year || null,
+                vehicle_plate:  fd.vehicle_plate || null,
+                status: 'received',
             } as any)
             .select('id, tracking_code')
             .single()
 
-        if (error) return { ok: false, error: error.message }
+        if (error) {
+            console.error('[createServiceOrderAction] insert error:', error)
+            return { ok: false, error: error.message }
+        }
 
-        await supabase.from('repair_updates').insert({
-            repair_id: (data as any).id,
-            user_id: userId,
-            status: 'received',
-            notes: 'Vehículo recibido en taller.',
-            photos: [],
-            is_client_visible: true
+        // Insert the initial timeline entry — non-critical, isolated from the main result
+        await adminClient.from('repair_updates').insert({
+            repair_id:         (data as any).id,
+            user_id:           userId,
+            status:            'received',
+            notes:             'Vehículo recibido en taller.',
+            photos:            [],
+            is_client_visible: true,
         } as any)
 
         revalidatePath('/admin/taller')
         return {
             ok: true,
             data: {
-                id: (data as any).id,
+                id:            (data as any).id,
                 tracking_code: (data as any).tracking_code,
                 workshop_name: (workshop as any)?.name || '',
                 workshop_slug: (workshop as any)?.slug || '',
@@ -343,6 +351,7 @@ export async function createServiceOrderAction(
             }
         }
     } catch (e: any) {
+        console.error('[createServiceOrderAction] unexpected error:', e)
         return { ok: false, error: e.message || 'Error al procesar la orden' }
     }
 }
@@ -462,19 +471,21 @@ export async function updateAppointmentAction(
 // If mechanicId is provided, only returns repairs assigned to that mechanic
 export async function getActiveRepairsAction(mechanicId?: string): Promise<ActionResult<any[]>> {
     try {
-        const { supabase, workshopId } = await getWorkshopId()
+        const { workshopId } = await getWorkshopId()
+        // Use admin client so RLS never blocks reads regardless of user role
+        const adminClient = await createAdminClient()
 
-        let query = supabase
+        let query = adminClient
             .from('repairs')
             .select(`
                 id, tracking_code, status, reported_issue, created_at,
                 estimated_completion, estimated_cost, vehicle_brand, vehicle_model,
-                vehicle_year, vehicle_plate, vehicle_id, mechanic_id,
-                clients:client_id ( id, full_name, phone ),
-                mechanic:mechanic_id ( id, full_name )
+                vehicle_year, vehicle_plate, mechanic_id,
+                clients!client_id ( id, full_name, phone ),
+                mechanic:users!mechanic_id ( id, full_name )
             `)
             .eq('workshop_id', workshopId)
-            .not('status', 'in', '("delivered","cancelled")')
+            .neq('status', 'delivered')
             .order('created_at', { ascending: false })
 
         if (mechanicId) {
@@ -483,9 +494,13 @@ export async function getActiveRepairsAction(mechanicId?: string): Promise<Actio
 
         const { data, error } = await query
 
-        if (error) return { ok: false, error: error.message }
+        if (error) {
+            console.error('[getActiveRepairsAction] error:', error)
+            return { ok: false, error: error.message }
+        }
         return { ok: true, data: data || [] }
     } catch (e: any) {
+        console.error('[getActiveRepairsAction] unexpected:', e)
         return { ok: false, error: e.message }
     }
 }
@@ -514,7 +529,7 @@ export async function updateRepairStatusAction(
             is_client_visible: true
         } as any)
 
-        revalidatePath('/admin/taller')
+        revalidatePath('/admin/dashboard')
         return { ok: true, data: null }
     } catch (e: any) {
         return { ok: false, error: e.message }
@@ -690,6 +705,7 @@ export async function resetEmployeePasswordAction(
 
         const { error } = await adminClient.auth.admin.updateUserById(userId, {
             password: newPassword,
+            app_metadata: { must_change_password: true },
         })
 
         if (error) return { ok: false, error: error.message }

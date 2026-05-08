@@ -4,7 +4,8 @@ import { useEffect, useRef, useState, useTransition } from 'react'
 import { gsap } from 'gsap'
 import {
     Plus, UserCog, Wrench, Mail, Phone, Calendar,
-    MoreVertical, Power, KeyRound, Users, ShieldCheck, Loader2
+    MoreVertical, Power, KeyRound, Users, ShieldCheck, Loader2,
+    Copy, Check, X, MessageSquare
 } from 'lucide-react'
 import { toggleEmployeeStatusAction, resetEmployeePasswordAction } from '@/lib/actions/admin'
 import NewEmployeeDrawer from './NewEmployeeDrawer'
@@ -40,6 +41,8 @@ export default function EmpleadosClient({ initialEmployees }: Props) {
     const [resetting, setResetting] = useState<string | null>(null)
     const [toggling, setToggling] = useState<string | null>(null)
     const [isPending, startTransition] = useTransition()
+    const [pwdModal, setPwdModal] = useState<{ name: string; email: string; phone: string | null; password: string } | null>(null)
+    const [copied, setCopied] = useState(false)
 
     const mechanics = employees.filter(e => e.role === 'mechanic')
     const receptionists = employees.filter(e => e.role === 'receptionist')
@@ -89,10 +92,17 @@ export default function EmpleadosClient({ initialEmployees }: Props) {
         startTransition(async () => {
             const res = await resetEmployeePasswordAction(emp.id, newPwd)
             if (res.ok) {
-                alert(`Nueva contraseña para ${emp.full_name}:\n\n${newPwd}\n\nCompártela de forma segura.`)
+                setPwdModal({ name: emp.full_name, email: emp.email, phone: emp.phone, password: newPwd })
             }
             setResetting(null)
         })
+    }
+
+    const handleCopyPassword = () => {
+        if (!pwdModal) return
+        navigator.clipboard.writeText(pwdModal.password)
+        setCopied(true)
+        setTimeout(() => setCopied(false), 2000)
     }
 
     const handleCreated = () => {
@@ -300,6 +310,76 @@ export default function EmpleadosClient({ initialEmployees }: Props) {
                 onClose={() => setDrawerOpen(false)}
                 onCreated={handleCreated}
             />
+
+            {/* Password Reset Modal */}
+            {pwdModal && (
+                <div className="fixed inset-0 z-[200] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setPwdModal(null)}>
+                    <div className="bg-zinc-950 border border-white/10 rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden" onClick={e => e.stopPropagation()}>
+                        {/* Header */}
+                        <div className="flex items-center justify-between px-5 py-4 border-b border-white/6">
+                            <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center">
+                                    <KeyRound className="w-4 h-4 text-orange-400" />
+                                </div>
+                                <div>
+                                    <p className="text-sm font-bold text-white">Contraseña restablecida</p>
+                                    <p className="text-xs text-zinc-500">{pwdModal.name}</p>
+                                </div>
+                            </div>
+                            <button onClick={() => setPwdModal(null)} className="p-1.5 text-zinc-500 hover:text-white hover:bg-white/8 rounded-lg transition-colors">
+                                <X className="w-4 h-4" />
+                            </button>
+                        </div>
+
+                        <div className="p-5 space-y-4">
+                            <p className="text-xs text-zinc-500 leading-relaxed">
+                                La próxima vez que el empleado inicie sesión, deberá elegir su propia contraseña.
+                            </p>
+
+                            {/* Password display */}
+                            <div className="bg-zinc-900 border border-white/8 rounded-xl px-4 py-3 flex items-center gap-3">
+                                <code className="flex-1 text-sm font-mono text-orange-300 tracking-wider break-all">{pwdModal.password}</code>
+                                <button
+                                    onClick={handleCopyPassword}
+                                    className="shrink-0 p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white transition-all"
+                                    title="Copiar contraseña"
+                                >
+                                    {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                                </button>
+                            </div>
+
+                            {/* Send options */}
+                            <div className="grid grid-cols-2 gap-2">
+                                <a
+                                    href={`mailto:${pwdModal.email}?subject=Acceso a MotoFix&body=Hola ${pwdModal.name},%0D%0A%0D%0ATu contraseña temporal es: ${pwdModal.password}%0D%0A%0D%0ADeberás cambiarla al iniciar sesión.`}
+                                    className="flex items-center justify-center gap-2 py-2.5 rounded-xl border border-white/10 text-xs font-medium text-zinc-400 hover:text-white hover:bg-white/5 transition-all"
+                                >
+                                    <Mail className="w-3.5 h-3.5" />
+                                    Enviar por email
+                                </a>
+                                {pwdModal.phone ? (
+                                    <a
+                                        href={`sms:${pwdModal.phone}?body=Hola ${pwdModal.name}, tu contraseña temporal es: ${pwdModal.password}. Deberás cambiarla al iniciar sesión.`}
+                                        className="flex items-center justify-center gap-2 py-2.5 rounded-xl border border-white/10 text-xs font-medium text-zinc-400 hover:text-white hover:bg-white/5 transition-all"
+                                    >
+                                        <MessageSquare className="w-3.5 h-3.5" />
+                                        Enviar por SMS
+                                    </a>
+                                ) : (
+                                    <button disabled className="flex items-center justify-center gap-2 py-2.5 rounded-xl border border-white/5 text-xs font-medium text-zinc-600 cursor-not-allowed">
+                                        <MessageSquare className="w-3.5 h-3.5" />
+                                        Sin teléfono
+                                    </button>
+                                )}
+                            </div>
+
+                            <button onClick={() => setPwdModal(null)} className="w-full py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-sm font-semibold text-white transition-all active:scale-95">
+                                Listo
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </>
     )
 }

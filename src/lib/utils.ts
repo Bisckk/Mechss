@@ -4,8 +4,8 @@ export function getRoleDashboardPath(role: UserRole): string {
   const paths: Record<UserRole, string> = {
     superadmin:   '/superadmin',
     admin:        '/admin',
-    receptionist: '/receptionist',
-    mechanic:     '/mechanic',
+    receptionist: '/admin/taller',
+    mechanic:     '/admin/taller',
   }
   return paths[role] ?? '/dashboard'
 }
