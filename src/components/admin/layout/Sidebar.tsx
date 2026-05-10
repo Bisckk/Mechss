@@ -15,6 +15,7 @@ export type SidebarUser = {
     email: string
     avatar_url: string | null
     role: string
+    workshop_name: string | null
 }
 
 interface Props {

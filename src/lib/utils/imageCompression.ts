@@ -1,4 +1,4 @@
-// Client-side image compression using Canvas API (zero dependencies)
+// Client-side image compression + WebP conversion using Canvas API (zero dependencies)
 
 interface CompressOptions {
     maxWidth?: number
@@ -14,19 +14,17 @@ export async function compressImage(
     const {
         maxWidth = 1200,
         maxHeight = 900,
-        quality = 0.8,
+        quality = 0.82,
         maxSizeKB = 300,
     } = options
 
     return new Promise((resolve, reject) => {
         const img = new Image()
-        const reader = new FileReader()
-
-        reader.onload = (e) => {
-            img.src = e.target?.result as string
-        }
+        const objectUrl = URL.createObjectURL(file)
 
         img.onload = () => {
+            URL.revokeObjectURL(objectUrl)
+
             const canvas = document.createElement('canvas')
             let { width, height } = img
 
@@ -53,7 +51,6 @@ export async function compressImage(
                     const sizeKB = blob.size / 1024
 
                     if (sizeKB <= maxSizeKB || q <= 0.3) {
-                        // Convert to dataUrl for preview
                         const fr = new FileReader()
                         fr.onload = (ev) => resolve({
                             blob,
@@ -65,15 +62,14 @@ export async function compressImage(
                         q -= 0.1
                         attempt()
                     }
-                }, 'image/jpeg', q)
+                }, 'image/webp', q)
             }
 
             attempt()
         }
 
-        img.onerror = () => reject(new Error('Image load failed'))
-        reader.onerror = () => reject(new Error('File read failed'))
-        reader.readAsDataURL(file)
+        img.onerror = () => { URL.revokeObjectURL(objectUrl); reject(new Error('Image load failed')) }
+        img.src = objectUrl
     })
 }
 

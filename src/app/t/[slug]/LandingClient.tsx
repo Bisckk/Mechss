@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { Search, Loader2, Wrench, Clock, CheckCircle, Package, AlertTriangle, ArrowLeft, Camera, ChevronDown, MapPin, Phone, Zap, Hash, X } from 'lucide-react'
+import Link from 'next/link'
 import { lookupTrackingCodeAction } from '@/lib/actions/tracking'
 import { HeroBlock, TrackingBlock, EcommerceBlock, ServicesBlock, GalleryBlock, TestimonialsBlock, FaqBlock, ContactBlock } from '@/components/landing/LandingBlocks'
 import LandingFooter from '@/components/landing/LandingFooter'
@@ -15,6 +16,7 @@ type LandingConfig = {
     blocks: any[]
     logo_url?: string | null
     cover_url?: string | null
+    slug?: string
 }
 
 type Workshop = {
@@ -184,16 +186,28 @@ export default function LandingClient({ config, workshop, products, mobile, prev
                         </>
                     )}
                 </div>
-                {workshop.phone && (
-                    <a
-                        href={`tel:${workshop.phone}`}
-                        className={`text-zinc-400 flex items-center gap-1.5 font-medium shrink-0 hover:text-white transition-colors ${mobile ? 'text-xs' : 'text-xs sm:text-sm'}`}
-                    >
-                        <Phone className="w-3.5 h-3.5" />
-                        <span className={mobile ? 'hidden' : 'hidden sm:inline'}>{workshop.phone}</span>
-                        <span className={mobile ? 'inline' : 'inline sm:hidden'}>Llamar</span>
-                    </a>
-                )}
+                <div className="flex items-center gap-3 shrink-0">
+                    {config.slug && !preview && (
+                        <Link
+                            href={`/t/${config.slug}/rastreo`}
+                            className={`flex items-center gap-1.5 font-semibold shrink-0 transition-colors ${mobile ? 'text-xs' : 'text-xs sm:text-sm'}`}
+                            style={{ color: config.primary_color }}
+                        >
+                            <Search className="w-3.5 h-3.5" />
+                            Rastrear
+                        </Link>
+                    )}
+                    {workshop.phone && (
+                        <a
+                            href={`tel:${workshop.phone}`}
+                            className={`text-zinc-400 flex items-center gap-1.5 font-medium shrink-0 hover:text-white transition-colors ${mobile ? 'text-xs' : 'text-xs sm:text-sm'}`}
+                        >
+                            <Phone className="w-3.5 h-3.5" />
+                            <span className={mobile ? 'hidden' : 'hidden sm:inline'}>{workshop.phone}</span>
+                            <span className={mobile ? 'inline' : 'inline sm:hidden'}>Llamar</span>
+                        </a>
+                    )}
+                </div>
             </header>
 
             <main className="relative z-10 w-full pb-32">

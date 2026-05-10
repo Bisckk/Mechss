@@ -1,6 +1,7 @@
 import { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import TallerClient from './TallerClient'
+import MisOrdenesClient from './MisOrdenesClient'
 
 export const metadata: Metadata = {
     title: 'Taller Activo | Panel Admin',
@@ -12,7 +13,7 @@ export default async function TallerPage() {
     const { data: { user } } = await supabase.auth.getUser()
 
     let userRole = 'admin'
-    let userId = ''
+    let userId   = ''
 
     if (user) {
         userId = user.id
@@ -22,6 +23,10 @@ export default async function TallerPage() {
             .eq('id', user.id)
             .single()
         userRole = (profile as any)?.role || 'admin'
+    }
+
+    if (userRole === 'mechanic') {
+        return <MisOrdenesClient userId={userId} />
     }
 
     return <TallerClient userRole={userRole} userId={userId} />

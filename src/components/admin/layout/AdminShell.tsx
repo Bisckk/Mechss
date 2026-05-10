@@ -25,6 +25,7 @@ export default function AdminShell({ user, children }: Props) {
                     onMenuClick={() => setMobileOpen(true)}
                     userName={user.full_name}
                     role={user.role}
+                    workshopName={user.workshop_name}
                 />
 
                 {/* Main content background elements */}

@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import {
     Search, Loader2, Wrench, Clock, CheckCircle, Package, AlertTriangle,
-    ArrowLeft, MapPin, Phone, ZoomIn, X, Wifi, Bell
+    ArrowLeft, MapPin, Phone, ZoomIn, X, Wifi, Bell, User
 } from 'lucide-react'
 import Link from 'next/link'
 import { gsap } from 'gsap'
@@ -16,6 +16,7 @@ type TrackingData = {
         created_at: string; estimated_completion: string | null;
         vehicle_brand: string | null; vehicle_model: string | null;
         vehicle_year: number | null; vehicle_plate: string | null;
+        mechanic_name?: string | null;
     }
     updates: { id: string; status: string; notes: string; photos: string[]; created_at: string }[]
     workshop: { name: string; phone: string | null } | null
@@ -160,8 +161,11 @@ export default function TrackingClient() {
         setIsSearching(false)
     }
 
-    const getStepIndex = (status: string) => STATUS_STEPS.findIndex(s => s.key === status)
-    const currentStepIndex = data ? getStepIndex(data.repair.status) : -1
+    const ESTADO_A_PASO: Record<string, number> = {
+        received: 0, in_progress: 1, repairing: 2,
+        waiting_parts: 2, completed: 3, delivered: 3,
+    }
+    const currentStepIndex = data ? (ESTADO_A_PASO[data.repair.status] ?? 0) : -1
 
     return (
         <div className="min-h-screen bg-zinc-950 text-white relative overflow-hidden">
@@ -329,6 +333,18 @@ export default function TrackingClient() {
                                     <Clock className="w-3.5 h-3.5" />
                                     Ingresó: {new Date(data.repair.created_at).toLocaleDateString('es-CO', { day: '2-digit', month: 'long', year: 'numeric' })}
                                 </div>
+                                {data.repair.estimated_completion && (
+                                    <div className="flex items-center gap-2 bg-white/5 px-3 py-1.5 rounded-lg border border-white/5 text-xs text-zinc-400 font-medium">
+                                        <Clock className="w-3.5 h-3.5" />
+                                        Entrega est.: {new Date(data.repair.estimated_completion).toLocaleDateString('es-CO', { day: '2-digit', month: 'long' })}
+                                    </div>
+                                )}
+                                {data.repair.mechanic_name && (
+                                    <div className="flex items-center gap-2 bg-white/5 px-3 py-1.5 rounded-lg border border-white/5 text-xs text-zinc-400 font-medium">
+                                        <User className="w-3.5 h-3.5" />
+                                        Mecánico: {data.repair.mechanic_name}
+                                    </div>
+                                )}
                             </div>
                         </div>
 

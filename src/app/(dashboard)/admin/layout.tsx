@@ -16,7 +16,7 @@ export default async function AdminLayout({
 
     const { data: profile, error: profileError } = await supabase
         .from('users')
-        .select('role, full_name, email, avatar_url, workshop_id')
+        .select('role, full_name, email, avatar_url, workshop_id, workshops(name)')
         .eq('id', user.id)
         .single()
 
@@ -41,6 +41,8 @@ export default async function AdminLayout({
         // We could return an error UI, but for now we'll just allow it and the queries will return 0 results
     }
 
+    const workshopName = profileAny.workshops?.name ?? null
+
     return (
         <AdminShell
             user={{
@@ -48,6 +50,7 @@ export default async function AdminLayout({
                 email: profileAny.email,
                 avatar_url: profileAny.avatar_url,
                 role: profileAny.role,
+                workshop_name: workshopName,
             }}
         >
             {children}

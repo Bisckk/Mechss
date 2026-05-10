@@ -1,8 +1,8 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/server'
 
-type TrackingResult = {
+export type TrackingResult = {
     repair: {
         id: string
         tracking_code: string
@@ -14,6 +14,7 @@ type TrackingResult = {
         vehicle_model: string | null
         vehicle_year: number | null
         vehicle_plate: string | null
+        mechanic_name: string | null
     }
     updates: {
         id: string
@@ -28,64 +29,85 @@ type TrackingResult = {
     } | null
 }
 
-export async function lookupTrackingCodeAction(
-    code: string
-): Promise<{ ok: true; data: TrackingResult } | { ok: false; error: string }> {
-    try {
-        const supabase = await createClient()
+type ActionResult<T> = { ok: true; data: T } | { ok: false; error: string }
 
-        // Lookup repair by tracking code
-        const { data: repair, error } = await supabase
+async function buscarReparacion(
+    code: string,
+    workshopId?: string
+): Promise<ActionResult<TrackingResult>> {
+    try {
+        const admin = createAdminClient()
+
+        let query = admin
             .from('repairs')
             .select(`
                 id, tracking_code, status, reported_issue, created_at,
                 estimated_completion, vehicle_brand, vehicle_model,
-                vehicle_year, vehicle_plate, workshop_id
+                vehicle_year, vehicle_plate, workshop_id,
+                mechanic:mechanic_id ( full_name )
             `)
             .eq('tracking_code', code.trim().toUpperCase())
-            .single()
+
+        if (workshopId) {
+            query = (query as any).eq('workshop_id', workshopId)
+        }
+
+        const { data: repair, error } = await (query as any).single()
 
         if (error || !repair) {
             return { ok: false, error: 'No se encontró ninguna orden con ese código de seguimiento.' }
         }
 
-        const repairAny = repair as any
+        const r = repair as any
 
-        // Fetch only client-visible updates
-        const { data: updates } = await supabase
+        const { data: updates } = await admin
             .from('repair_updates')
             .select('id, status, notes, photos, created_at')
-            .eq('repair_id', repairAny.id)
+            .eq('repair_id', r.id)
             .eq('is_client_visible', true)
             .order('created_at', { ascending: false })
 
-        // Fetch workshop info
-        const { data: workshop } = await supabase
+        const { data: workshop } = await admin
             .from('workshops')
             .select('name, phone')
-            .eq('id', repairAny.workshop_id)
+            .eq('id', r.workshop_id)
             .single()
 
         return {
             ok: true,
             data: {
                 repair: {
-                    id: repairAny.id,
-                    tracking_code: repairAny.tracking_code,
-                    status: repairAny.status,
-                    reported_issue: repairAny.reported_issue,
-                    created_at: repairAny.created_at,
-                    estimated_completion: repairAny.estimated_completion,
-                    vehicle_brand: repairAny.vehicle_brand,
-                    vehicle_model: repairAny.vehicle_model,
-                    vehicle_year: repairAny.vehicle_year,
-                    vehicle_plate: repairAny.vehicle_plate,
+                    id: r.id,
+                    tracking_code: r.tracking_code,
+                    status: r.status,
+                    reported_issue: r.reported_issue,
+                    created_at: r.created_at,
+                    estimated_completion: r.estimated_completion ?? null,
+                    vehicle_brand: r.vehicle_brand,
+                    vehicle_model: r.vehicle_model,
+                    vehicle_year: r.vehicle_year,
+                    vehicle_plate: r.vehicle_plate,
+                    mechanic_name: (r.mechanic as any)?.full_name ?? null,
                 },
                 updates: (updates as any[]) || [],
-                workshop: workshop as any || null,
+                workshop: (workshop as any) || null,
             }
         }
     } catch (e: any) {
         return { ok: false, error: e.message || 'Error al consultar' }
     }
+}
+
+export async function lookupTrackingCodeAction(
+    code: string
+): Promise<ActionResult<TrackingResult>> {
+    return buscarReparacion(code)
+}
+
+// Busca un código validando que pertenezca al taller indicado
+export async function lookupByWorkshopAction(
+    code: string,
+    workshopId: string
+): Promise<ActionResult<TrackingResult>> {
+    return buscarReparacion(code, workshopId)
 }

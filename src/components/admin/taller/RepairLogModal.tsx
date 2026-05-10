@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { gsap } from 'gsap'
 import {
     X, Wrench, Loader2, Send, Clock, User, Hash,
-    Eye, EyeOff, ChevronDown, Trash2, AlertCircle, Camera, ZoomIn
+    Eye, EyeOff, ChevronDown, Trash2, AlertCircle, Camera, ZoomIn, Package
 } from 'lucide-react'
 import {
     getRepairUpdatesAction, createRepairUpdateAction, updateRepairStatusAction,
@@ -31,8 +31,10 @@ type RepairUpdate = {
     status: string
     notes: string
     photos: string[]
+    parts: { item_id: string; name: string; quantity: number; sale_price: number }[]
     is_client_visible: boolean
     created_at: string
+    author: { full_name: string } | null
 }
 
 type PhotoPreview = {
@@ -50,6 +52,7 @@ interface RepairLogModalProps {
     onClose: () => void
     repair: Repair | null
     userRole?: string
+    readOnly?: boolean
 }
 
 const statusConfig: Record<string, { label: string, color: string, bg: string }> = {
@@ -73,7 +76,7 @@ const STATUS_OPTIONS = [
 
 const MAX_PHOTOS = 5
 
-export default function RepairLogModal({ isOpen, onClose, repair, userRole = 'admin' }: RepairLogModalProps) {
+export default function RepairLogModal({ isOpen, onClose, repair, userRole = 'admin', readOnly = false }: RepairLogModalProps) {
     const isMechanic = userRole === 'mechanic'
 
     const [updates, setUpdates] = useState<RepairUpdate[]>([])
@@ -290,7 +293,7 @@ export default function RepairLogModal({ isOpen, onClose, repair, userRole = 'ad
                     </div>
 
                     {/* Compose Area */}
-                    <div className="shrink-0 p-5 border-b border-white/5 bg-zinc-900/30">
+                    {!readOnly && <div className="shrink-0 p-5 border-b border-white/5 bg-zinc-900/30">
                         <form onSubmit={handleSubmitUpdate}>
                             <div className="flex items-start gap-4">
                                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center text-white font-bold text-sm shrink-0 shadow-lg">
@@ -311,11 +314,12 @@ export default function RepairLogModal({ isOpen, onClose, repair, userRole = 'ad
 
                                     {/* Photo previews */}
                                     {photos.length > 0 && (
-                                        <div className="flex flex-wrap gap-2 mt-3">
+                                        <div className="grid grid-cols-4 sm:grid-cols-5 gap-2 mt-3">
                                             {photos.map(photo => (
                                                 <div
                                                     key={photo.id}
-                                                    className="relative w-20 h-20 rounded-xl overflow-hidden border border-white/10 group"
+                                                    className="relative aspect-square rounded-xl overflow-hidden border border-white/10 group cursor-pointer"
+                                                    onClick={() => photo.dataUrl && !photo.uploading && setLightboxUrl(photo.dataUrl)}
                                                     ref={(el) => {
                                                         if (el && !el.dataset.animated) {
                                                             el.dataset.animated = 'true'
@@ -335,27 +339,24 @@ export default function RepairLogModal({ isOpen, onClose, repair, userRole = 'ad
                                                         </div>
                                                     ) : (
                                                         <>
-                                                            <img src={photo.dataUrl} alt="" className="w-full h-full object-cover" />
-                                                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100">
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => setLightboxUrl(photo.dataUrl)}
-                                                                    className="p-1.5 bg-white/20 rounded-lg hover:bg-white/40 transition-colors"
-                                                                >
-                                                                    <ZoomIn className="w-3.5 h-3.5 text-white" />
-                                                                </button>
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => removePhoto(photo.id)}
-                                                                    className="p-1.5 bg-rose-500/40 rounded-lg hover:bg-rose-500/70 transition-colors"
-                                                                >
-                                                                    <Trash2 className="w-3.5 h-3.5 text-white" />
-                                                                </button>
+                                                            <img src={photo.dataUrl} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                                                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100 pointer-events-none">
+                                                                <ZoomIn className="w-4 h-4 text-white" />
                                                             </div>
-                                                            <div className="absolute bottom-1 left-1 bg-black/60 rounded px-1 text-[9px] text-white font-mono">
+                                                            <div className="absolute bottom-1 left-1 bg-black/60 rounded px-1 text-[9px] text-white font-mono pointer-events-none">
                                                                 {photo.sizeKB}KB
                                                             </div>
                                                         </>
+                                                    )}
+
+                                                    {!photo.uploading && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={e => { e.stopPropagation(); removePhoto(photo.id) }}
+                                                            className="absolute top-1.5 right-1.5 p-1 bg-rose-500/90 hover:bg-rose-500 rounded-lg shadow-lg transition-colors z-10"
+                                                        >
+                                                            <Trash2 className="w-3 h-3 text-white" />
+                                                        </button>
                                                     )}
                                                 </div>
                                             ))}
@@ -417,7 +418,7 @@ export default function RepairLogModal({ isOpen, onClose, repair, userRole = 'ad
                                 </div>
                             </div>
                         </form>
-                    </div>
+                    </div>}
 
                     {/* Timeline */}
                     <div className="flex-1 overflow-y-auto p-5 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
@@ -453,18 +454,23 @@ export default function RepairLogModal({ isOpen, onClose, repair, userRole = 'ad
                                                 </div>
 
                                                 <div className="flex-1 bg-zinc-900/60 border border-white/5 rounded-xl p-4 hover:border-white/10 transition-all">
-                                                    <div className="flex items-center justify-between mb-2">
+                                                    <div className="flex items-center justify-between mb-2 gap-2 flex-wrap">
                                                         <div className="flex items-center gap-2 flex-wrap">
                                                             <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${sc.bg} ${sc.color}`}>
                                                                 {sc.label}
                                                             </span>
+                                                            {upd.author && (
+                                                                <span className="flex items-center gap-1 text-[10px] text-zinc-400 bg-zinc-800 px-2 py-0.5 rounded-full border border-white/5">
+                                                                    <User className="w-2.5 h-2.5" /> {upd.author.full_name}
+                                                                </span>
+                                                            )}
                                                             {!upd.is_client_visible && (
                                                                 <span className="text-[10px] font-bold text-zinc-600 bg-zinc-800 px-2 py-0.5 rounded-full border border-white/5 flex items-center gap-1">
                                                                     <EyeOff className="w-2.5 h-2.5" /> Interna
                                                                 </span>
                                                             )}
                                                         </div>
-                                                        <div className="flex items-center gap-1 text-[10px] text-zinc-600">
+                                                        <div className="flex items-center gap-1 text-[10px] text-zinc-600 shrink-0">
                                                             <Clock className="w-3 h-3" />
                                                             {date.toLocaleDateString('es-CO', { day: '2-digit', month: 'short' })} · {date.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}
                                                         </div>
@@ -472,6 +478,18 @@ export default function RepairLogModal({ isOpen, onClose, repair, userRole = 'ad
 
                                                     {upd.notes && (
                                                         <p className="text-sm text-zinc-300 leading-relaxed whitespace-pre-wrap">{upd.notes}</p>
+                                                    )}
+
+                                                    {/* Partes utilizadas */}
+                                                    {upd.parts && upd.parts.length > 0 && (
+                                                        <div className="mt-3 flex flex-wrap gap-1.5">
+                                                            {upd.parts.map((p, i) => (
+                                                                <span key={i} className="inline-flex items-center gap-1 text-[11px] bg-orange-500/10 border border-orange-500/20 text-orange-400 px-2 py-0.5 rounded-full font-medium">
+                                                                    <Package className="w-2.5 h-2.5" />
+                                                                    {p.quantity}× {p.name}
+                                                                </span>
+                                                            ))}
+                                                        </div>
                                                     )}
 
                                                     {/* Photos grid */}
@@ -508,13 +526,16 @@ export default function RepairLogModal({ isOpen, onClose, repair, userRole = 'ad
                     className="fixed inset-0 z-[200] bg-black/95 flex items-center justify-center p-4"
                     onClick={() => setLightboxUrl(null)}
                 >
-                    <button className="absolute top-4 right-4 p-2 text-white/60 hover:text-white bg-white/10 rounded-xl transition-colors">
+                    <button
+                        className="absolute top-4 right-4 p-2.5 text-white/70 hover:text-white bg-white/10 hover:bg-white/20 rounded-xl transition-all"
+                        onClick={() => setLightboxUrl(null)}
+                    >
                         <X className="w-5 h-5" />
                     </button>
                     <img
                         src={lightboxUrl}
                         alt="Vista completa"
-                        className="max-w-full max-h-[90vh] object-contain rounded-xl shadow-2xl"
+                        className="max-w-full max-h-[88vh] object-contain rounded-2xl shadow-2xl"
                         onClick={e => e.stopPropagation()}
                     />
                 </div>

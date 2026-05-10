@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
+import { insertNotificationAction } from '@/lib/actions/notifications'
 
 // ── Types ──────────────────────────────────────────────────
 
@@ -57,7 +58,7 @@ async function getWorkshopId() {
     const profileAny = profile as any;
 
     if (profileAny?.workshop_id) {
-        return { supabase, workshopId: profileAny.workshop_id, userId: user.id }
+        return { supabase, workshopId: profileAny.workshop_id, userId: user.id, role: profileAny.role as string }
     }
 
     // Superadmin without a workshop_id: use the first active workshop
@@ -72,7 +73,7 @@ async function getWorkshopId() {
 
         const workshopAny = workshop as any;
         if (workshopAny?.id) {
-            return { supabase, workshopId: workshopAny.id, userId: user.id }
+            return { supabase, workshopId: workshopAny.id, userId: user.id, role: 'superadmin' as string }
         }
     }
 
@@ -98,7 +99,7 @@ export async function createClientAction(
     fd: CreateClientData
 ): Promise<ActionResult<{ id: string }>> {
     try {
-        const { supabase, workshopId } = await getWorkshopId()
+        const { supabase, workshopId, userId } = await getWorkshopId()
 
         // Build OR conditions for duplicate check
         const orConditions: string[] = [
@@ -141,6 +142,16 @@ export async function createClientAction(
             .single()
 
         if (error) return { ok: false, error: error.message }
+
+        void insertNotificationAction({
+            workshopId,
+            actorId:   userId,
+            actorName: null,
+            type:      'client_created',
+            title:     'Nuevo cliente registrado',
+            body:      fd.full_name,
+            metadata:  { client_id: (data as any).id, client_name: fd.full_name, phone: fd.phone || null },
+        })
 
         revalidatePath('/admin/agenda')
         revalidatePath('/admin/clientes')
@@ -338,6 +349,23 @@ export async function createServiceOrderAction(
             photos:            [],
             is_client_visible: true,
         } as any)
+
+        void insertNotificationAction({
+            workshopId,
+            actorId:   userId,
+            actorName: null,
+            type:      'repair_created',
+            title:     'Nuevo servicio registrado',
+            body:      `${fd.vehicle_brand ?? ''} ${fd.vehicle_model ?? ''} · Placa ${fd.vehicle_plate ?? '—'}`.trim(),
+            metadata:  {
+                repair_id:      (data as any).id,
+                tracking_code:  (data as any).tracking_code,
+                vehicle_brand:  fd.vehicle_brand ?? null,
+                vehicle_model:  fd.vehicle_model ?? null,
+                vehicle_plate:  fd.vehicle_plate ?? null,
+                client_id:      fd.client_id,
+            },
+        })
 
         revalidatePath('/admin/taller')
         return {
@@ -545,7 +573,7 @@ export async function getRepairUpdatesAction(
 
         const { data, error } = await supabase
             .from('repair_updates')
-            .select('id, status, notes, photos, is_client_visible, created_at, author:user_id(full_name)')
+            .select('id, status, notes, photos, parts, is_client_visible, created_at, author:user_id(full_name)')
             .eq('repair_id', repairId)
             .order('created_at', { ascending: false })
 
@@ -579,6 +607,51 @@ export async function getRepairDetailAction(repairId: string): Promise<ActionRes
     }
 }
 
+// Actualiza campos editables de una orden: motivo, presupuesto, mecánico, fecha estimada
+export async function updateRepairDetailsAction(
+    repairId: string,
+    campos: {
+        reported_issue?: string
+        estimated_cost?: number | null
+        mechanic_id?: string | null
+        estimated_completion?: string | null
+    }
+): Promise<ActionResult<null>> {
+    try {
+        // Verifica autenticación y obtiene el workshop del usuario
+        const { workshopId } = await getWorkshopId()
+        const admin = createAdminClient()
+
+        // Valida que la orden pertenezca al workshop del usuario
+        const { data: repairCheck } = await admin
+            .from('repairs')
+            .select('id')
+            .eq('id', repairId)
+            .eq('workshop_id', workshopId)
+            .single()
+
+        if (!repairCheck) return { ok: false, error: 'Orden no encontrada o sin permisos.' }
+
+        const actualizar: Record<string, any> = {}
+        if (campos.reported_issue       !== undefined) actualizar.reported_issue      = campos.reported_issue
+        if (campos.estimated_cost       !== undefined) actualizar.estimated_cost      = campos.estimated_cost
+        if (campos.mechanic_id          !== undefined) actualizar.mechanic_id         = campos.mechanic_id
+        if (campos.estimated_completion !== undefined) actualizar.estimated_completion = campos.estimated_completion || null
+
+        const { error } = await admin
+            .from('repairs')
+            .update(actualizar)
+            .eq('id', repairId)
+
+        if (error) return { ok: false, error: error.message }
+
+        revalidatePath('/admin/taller')
+        return { ok: true, data: null }
+    } catch (e: any) {
+        return { ok: false, error: e.message }
+    }
+}
+
 // ── Photo Upload Action ────────────────────────────────────
 
 export async function uploadRepairPhotoAction(
@@ -587,22 +660,24 @@ export async function uploadRepairPhotoAction(
     fileName: string
 ): Promise<ActionResult<{ url: string }>> {
     try {
-        const { supabase } = await getAuthClient()
+        // Verify auth first, then use admin client for storage (bypasses bucket RLS)
+        await getAuthClient()
+        const admin = createAdminClient()
 
-        // Convert base64 to buffer
-        const base64 = base64Data.split(',')[1]
+        const base64 = base64Data.includes(',') ? base64Data.split(',')[1] : base64Data
         const buffer = Buffer.from(base64, 'base64')
-        const blob = new Blob([buffer], { type: 'image/jpeg' })
+        const blob = new Blob([buffer], { type: 'image/webp' })
 
-        const path = `repairs/${repairId}/${Date.now()}_${fileName.replace(/[^a-zA-Z0-9._-]/g, '_')}.jpg`
+        const baseName = fileName.replace(/\.[^.]+$/, '').replace(/[^a-zA-Z0-9_-]/g, '_')
+        const path = `repairs/${repairId}/${Date.now()}_${baseName}.webp`
 
-        const { data, error } = await supabase.storage
+        const { data, error } = await admin.storage
             .from('repair-photos')
-            .upload(path, blob, { contentType: 'image/jpeg', upsert: false })
+            .upload(path, blob, { contentType: 'image/webp', cacheControl: '31536000', upsert: false })
 
         if (error) return { ok: false, error: error.message }
 
-        const { data: { publicUrl } } = supabase.storage
+        const { data: { publicUrl } } = admin.storage
             .from('repair-photos')
             .getPublicUrl(data.path)
 
@@ -739,7 +814,8 @@ export async function createRepairUpdateAction(
     repairId: string,
     notes: string,
     photos: string[],
-    isClientVisible: boolean = true
+    isClientVisible: boolean = true,
+    parts: { item_id: string; name: string; quantity: number; sale_price: number }[] = []
 ): Promise<ActionResult<{ id: string }>> {
     try {
         const { supabase, userId } = await getWorkshopId()
@@ -761,6 +837,7 @@ export async function createRepairUpdateAction(
                 status: currentStatus,
                 notes,
                 photos: photos || [],
+                parts: parts || [],
                 is_client_visible: isClientVisible
             } as any)
             .select('id')
@@ -772,5 +849,165 @@ export async function createRepairUpdateAction(
         return { ok: true, data: { id: (data as any).id } }
     } catch (e: any) {
         return { ok: false, error: e.message || 'Error al crear actualización' }
+    }
+}
+
+export async function buscarRepuestosAction(query: string): Promise<ActionResult<any[]>> {
+    try {
+        const { supabase, workshopId } = await getWorkshopId()
+
+        let q = supabase
+            .from('inventory_items')
+            .select('id, name, sku, category, sale_price, stock_quantity, image_url')
+            .eq('workshop_id', workshopId)
+            .gt('stock_quantity', 0)
+            .order('name', { ascending: true })
+            .limit(20)
+
+        if (query.trim()) {
+            q = q.ilike('name', `%${query.trim()}%`)
+        }
+
+        const { data, error } = await q
+        if (error) return { ok: false, error: error.message }
+        return { ok: true, data: data || [] }
+    } catch (e: any) {
+        return { ok: false, error: e.message }
+    }
+}
+
+// Mechanic requests completion — sets status to pending_completion
+export async function solicitarCompletarAction(repairId: string): Promise<ActionResult<null>> {
+    try {
+        const { workshopId, userId } = await getWorkshopId()
+        const admin = createAdminClient()
+
+        // Validate the repair belongs to this workshop and is assigned to this mechanic
+        const { data: repair } = await admin
+            .from('repairs')
+            .select('id, status, tracking_code, vehicle_brand, vehicle_model, vehicle_plate')
+            .eq('id', repairId)
+            .eq('workshop_id', workshopId)
+            .eq('mechanic_id', userId)
+            .single()
+
+        if (!repair) return { ok: false, error: 'Orden no encontrada o no asignada a ti.' }
+
+        const { error } = await admin
+            .from('repairs')
+            .update({ status: 'pending_completion' })
+            .eq('id', repairId)
+
+        if (error) return { ok: false, error: error.message }
+
+        await admin.from('repair_updates').insert({
+            repair_id: repairId,
+            user_id: userId,
+            status: 'pending_completion',
+            notes: 'El mecánico ha marcado el servicio como finalizado. Pendiente de aprobación.',
+            photos: [],
+            parts: [],
+            is_client_visible: false,
+        } as any)
+
+        const r = repair as any
+        void insertNotificationAction({
+            workshopId,
+            actorId:   userId,
+            actorName: null,
+            type:      'pending_completion',
+            title:     'Servicio listo para aprobar',
+            body:      `#${r.tracking_code} · ${r.vehicle_brand ?? ''} ${r.vehicle_model ?? ''}`.trim(),
+            metadata:  {
+                repair_id:     repairId,
+                tracking_code: r.tracking_code,
+                vehicle_brand: r.vehicle_brand,
+                vehicle_model: r.vehicle_model,
+                vehicle_plate: r.vehicle_plate,
+                mechanic_id:   userId,
+            },
+        })
+
+        revalidatePath('/admin/taller')
+        return { ok: true, data: null }
+    } catch (e: any) {
+        return { ok: false, error: e.message }
+    }
+}
+
+// Edit an existing repair_update entry (mechanic can only edit their own)
+export async function updateRepairUpdateAction(
+    updateId: string,
+    notes: string,
+    parts: { item_id: string; name: string; quantity: number; sale_price: number }[]
+): Promise<ActionResult<null>> {
+    try {
+        const { userId } = await getAuthClient()
+        const admin = createAdminClient()
+
+        const { data: update } = await admin
+            .from('repair_updates')
+            .select('id, user_id')
+            .eq('id', updateId)
+            .single()
+
+        if (!update) return { ok: false, error: 'Registro no encontrado.' }
+        if ((update as any).user_id !== userId) return { ok: false, error: 'No tienes permisos para editar este registro.' }
+
+        const { error } = await admin
+            .from('repair_updates')
+            .update({ notes, parts })
+            .eq('id', updateId)
+
+        if (error) return { ok: false, error: error.message }
+
+        revalidatePath('/admin/taller')
+        return { ok: true, data: null }
+    } catch (e: any) {
+        return { ok: false, error: e.message }
+    }
+}
+
+// Admin/receptionist approves completion — sets status to completed
+export async function aprobarCompletarAction(repairId: string): Promise<ActionResult<null>> {
+    try {
+        const { workshopId, userId, role } = await getWorkshopId()
+
+        if (role !== 'admin' && role !== 'receptionist' && role !== 'superadmin') {
+            return { ok: false, error: 'Sin permisos para aprobar completados.' }
+        }
+
+        const admin = createAdminClient()
+
+        const { data: repair } = await admin
+            .from('repairs')
+            .select('id, status')
+            .eq('id', repairId)
+            .eq('workshop_id', workshopId)
+            .single()
+
+        if (!repair) return { ok: false, error: 'Orden no encontrada.' }
+
+        const { error } = await admin
+            .from('repairs')
+            .update({ status: 'completed' })
+            .eq('id', repairId)
+
+        if (error) return { ok: false, error: error.message }
+
+        await admin.from('repair_updates').insert({
+            repair_id: repairId,
+            user_id: userId,
+            status: 'completed',
+            notes: 'Servicio aprobado y marcado como completado.',
+            photos: [],
+            parts: [],
+            is_client_visible: true,
+        } as any)
+
+        revalidatePath('/admin/taller')
+        return { ok: true, data: null }
+    } catch (e: any) {
+        return { ok: false, error: e.message }
     }
 }

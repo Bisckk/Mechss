@@ -3,12 +3,13 @@
 import { useState, useEffect, useRef } from 'react'
 import {
     Wrench, Package, CheckCircle, Clock, AlertTriangle,
-    Search, RefreshCw, ChevronRight, User, Hash, FileText, Plus, UserCog, ChevronDown, Check, LayoutGrid, List
+    Search, RefreshCw, ChevronRight, User, Hash, FileText, Plus, UserCog, ChevronDown, Check, LayoutGrid, List, SlidersHorizontal, CalendarCheck2, ThumbsUp, Loader2
 } from 'lucide-react'
 import { gsap } from 'gsap'
-import { getActiveRepairsAction, updateRepairStatusAction } from '@/lib/actions/admin'
+import { getActiveRepairsAction, updateRepairStatusAction, aprobarCompletarAction } from '@/lib/actions/admin'
 import RepairLogModal from '@/components/admin/taller/RepairLogModal'
 import CreateRepairDrawer from '@/components/admin/taller/CreateRepairDrawer'
+import DetallesOrdenModal from '@/components/admin/taller/DetallesOrdenModal'
 
 type Repair = {
     id: string
@@ -33,11 +34,12 @@ interface Props {
 }
 
 const COLUMNS = [
-    { key: 'received', label: 'Recibidos', icon: Package, borderActive: 'border-blue-500/50', textActive: 'text-blue-400', gradient: 'from-blue-500 to-blue-600', glow: 'rgba(59,130,246,0.15)' },
-    { key: 'in_progress', label: 'En Diagnóstico', icon: Search, borderActive: 'border-amber-500/50', textActive: 'text-amber-400', gradient: 'from-amber-500 to-amber-600', glow: 'rgba(245,158,11,0.15)' },
-    { key: 'repairing', label: 'En Reparación', icon: Wrench, borderActive: 'border-purple-500/50', textActive: 'text-purple-400', gradient: 'from-purple-500 to-purple-600', glow: 'rgba(168,85,247,0.15)' },
-    { key: 'waiting_parts', label: 'Esperando Repuestos', icon: AlertTriangle, borderActive: 'border-rose-500/50', textActive: 'text-rose-400', gradient: 'from-rose-500 to-rose-600', glow: 'rgba(244,63,94,0.15)' },
-    { key: 'completed', label: 'Completados', icon: CheckCircle, borderActive: 'border-emerald-500/50', textActive: 'text-emerald-400', gradient: 'from-emerald-500 to-emerald-600', glow: 'rgba(16,185,129,0.15)' },
+    { key: 'received',           label: 'Recibidos',         icon: Package,        borderActive: 'border-blue-500/50',   textActive: 'text-blue-400',    gradient: 'from-blue-500 to-blue-600',    glow: 'rgba(59,130,246,0.15)' },
+    { key: 'in_progress',        label: 'En Diagnóstico',    icon: Search,         borderActive: 'border-amber-500/50',  textActive: 'text-amber-400',   gradient: 'from-amber-500 to-amber-600',  glow: 'rgba(245,158,11,0.15)' },
+    { key: 'repairing',          label: 'En Reparación',     icon: Wrench,         borderActive: 'border-purple-500/50', textActive: 'text-purple-400',  gradient: 'from-purple-500 to-purple-600',glow: 'rgba(168,85,247,0.15)' },
+    { key: 'waiting_parts',      label: 'Esp. Repuestos',    icon: AlertTriangle,  borderActive: 'border-rose-500/50',   textActive: 'text-rose-400',    gradient: 'from-rose-500 to-rose-600',    glow: 'rgba(244,63,94,0.15)' },
+    { key: 'pending_completion', label: 'Pend. Aprobación',  icon: ThumbsUp,       borderActive: 'border-orange-500/50', textActive: 'text-orange-400',  gradient: 'from-orange-500 to-orange-600',glow: 'rgba(249,115,22,0.15)' },
+    { key: 'completed',          label: 'Completados',       icon: CheckCircle,    borderActive: 'border-emerald-500/50',textActive: 'text-emerald-400', gradient: 'from-emerald-500 to-emerald-600',glow: 'rgba(16,185,129,0.15)' },
 ]
 
 const isMechanic = (role: string) => role === 'mechanic'
@@ -47,7 +49,8 @@ export default function TallerClient({ userRole, userId }: Props) {
     const [repairs, setRepairs] = useState<Repair[]>([])
     const [isLoading, setIsLoading] = useState(true)
     const [loadError, setLoadError] = useState<string | null>(null)
-    const [selectedRepair, setSelectedRepair] = useState<Repair | null>(null)
+    const [selectedRepair, setSelectedRepair]         = useState<Repair | null>(null)
+    const [detallesRepair, setDetallesRepair]         = useState<Repair | null>(null)
     const [searchQuery, setSearchQuery] = useState('')
     const [activeTab, setActiveTab] = useState('received')
     const [showCreateDrawer, setShowCreateDrawer] = useState(false)
@@ -56,6 +59,7 @@ export default function TallerClient({ userRole, userId }: Props) {
     const listRef = useRef<HTMLDivElement>(null)
     const hasLoadedRef = useRef(false)
     const [openDropdownId, setOpenDropdownId] = useState<string | null>(null)
+    const [aprobandoId, setAprobandoId] = useState<string | null>(null)
 
     useEffect(() => { loadRepairs() }, [])
 
@@ -108,6 +112,16 @@ export default function TallerClient({ userRole, userId }: Props) {
 
         setIsLoading(false)
         hasLoadedRef.current = true
+    }
+
+    const handleAprobarCompletado = async (repairId: string) => {
+        setAprobandoId(repairId)
+        setRepairs(prev => prev.map(r => r.id === repairId ? { ...r, status: 'completed' } : r))
+        const res = await aprobarCompletarAction(repairId)
+        if (!res.ok) {
+            setRepairs(prev => prev.map(r => r.id === repairId ? { ...r, status: 'pending_completion' } : r))
+        }
+        setAprobandoId(null)
     }
 
     const handleMoveStatus = async (repairId: string, newStatus: string) => {
@@ -383,14 +397,54 @@ export default function TallerClient({ userRole, userId }: Props) {
                                                 <span>Sin asignar</span>
                                             </div>
                                         )}
-                                        <div className="flex items-center gap-1.5 text-xs text-zinc-600 md:mt-2">
-                                            <Clock className="w-3.5 h-3.5" />
-                                            {new Date(repair.created_at).toLocaleDateString('es-CO', { day: '2-digit', month: 'short' })}
+                                        <div className="flex flex-col gap-1 md:mt-2">
+                                            <div className="flex items-center gap-1.5 text-xs text-zinc-600">
+                                                <Clock className="w-3 h-3 flex-shrink-0" />
+                                                <span className="whitespace-nowrap">
+                                                    {new Date(repair.created_at).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: '2-digit' })}
+                                                </span>
+                                            </div>
+                                            {repair.estimated_completion ? (
+                                                <div className="flex items-center gap-1.5 text-xs text-orange-400/80">
+                                                    <CalendarCheck2 className="w-3 h-3 flex-shrink-0" />
+                                                    <span className="whitespace-nowrap">
+                                                        {new Date(repair.estimated_completion).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: '2-digit' })}
+                                                    </span>
+                                                </div>
+                                            ) : (
+                                                <div className="flex items-center gap-1.5 text-xs text-zinc-700">
+                                                    <CalendarCheck2 className="w-3 h-3 flex-shrink-0" />
+                                                    <span className="whitespace-nowrap">Sin fecha est.</span>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
 
                                     {/* Column 4: Actions */}
-                                    <div className="w-full md:w-auto flex items-center gap-3 justify-end border-t border-white/5 md:border-t-0 pt-3 md:pt-0">
+                                    <div className="w-full md:w-auto flex items-center gap-2 justify-end border-t border-white/5 md:border-t-0 pt-3 md:pt-0">
+                                        {canManage(userRole) && repair.status === 'pending_completion' && (
+                                            <button
+                                                onClick={() => handleAprobarCompletado(repair.id)}
+                                                disabled={aprobandoId === repair.id}
+                                                className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 text-sm font-bold border border-emerald-500/30 transition-all disabled:opacity-50"
+                                            >
+                                                {aprobandoId === repair.id
+                                                    ? <Loader2 className="w-4 h-4 animate-spin" />
+                                                    : <ThumbsUp className="w-4 h-4" />
+                                                }
+                                                <span className="hidden lg:inline">Aprobar</span>
+                                            </button>
+                                        )}
+                                        {canManage(userRole) && (
+                                            <button
+                                                onClick={() => setDetallesRepair(repair)}
+                                                className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-zinc-300 text-sm font-semibold transition-all"
+                                                title="Editar detalles del servicio"
+                                            >
+                                                <SlidersHorizontal className="w-4 h-4 text-zinc-400" />
+                                                <span className="hidden lg:inline">Detalles</span>
+                                            </button>
+                                        )}
                                         <button
                                             onClick={() => setSelectedRepair(repair)}
                                             className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-white text-sm font-semibold transition-all"
@@ -398,7 +452,7 @@ export default function TallerClient({ userRole, userId }: Props) {
                                             <FileText className="w-4 h-4 text-zinc-400" />
                                             Bitácora
                                         </button>
-                                        
+
                                         {canManage(userRole) && (
                                             <div className="relative status-dropdown-container flex-1 md:flex-none">
                                                 <button
@@ -480,13 +534,48 @@ export default function TallerClient({ userRole, userId }: Props) {
                                                 <span>Sin asignar</span>
                                             </div>
                                         )}
-                                        <div className="flex items-center gap-1.5 text-xs text-zinc-600">
-                                            <Clock className="w-3.5 h-3.5" />
-                                            {new Date(repair.created_at).toLocaleDateString('es-CO', { day: '2-digit', month: 'short' })}
+                                        <div className="flex flex-col gap-1 items-end">
+                                            <div className="flex items-center gap-1.5 text-xs text-zinc-600">
+                                                <Clock className="w-3 h-3 flex-shrink-0" />
+                                                <span className="whitespace-nowrap">
+                                                    {new Date(repair.created_at).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: '2-digit' })}
+                                                </span>
+                                            </div>
+                                            {repair.estimated_completion ? (
+                                                <div className="flex items-center gap-1.5 text-xs text-orange-400/80">
+                                                    <CalendarCheck2 className="w-3 h-3 flex-shrink-0" />
+                                                    <span className="whitespace-nowrap">
+                                                        {new Date(repair.estimated_completion).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: '2-digit' })}
+                                                    </span>
+                                                </div>
+                                            ) : (
+                                                <div className="flex items-center gap-1.5 text-xs text-zinc-700">
+                                                    <CalendarCheck2 className="w-3 h-3 flex-shrink-0" />
+                                                    <span className="whitespace-nowrap">Sin fecha est.</span>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
 
                                     <div className="flex gap-2">
+                                        {canManage(userRole) && repair.status === 'pending_completion' && (
+                                            <button
+                                                onClick={() => handleAprobarCompletado(repair.id)}
+                                                disabled={aprobandoId === repair.id}
+                                                className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 text-xs font-bold border border-emerald-500/30 transition-all disabled:opacity-50"
+                                            >
+                                                {aprobandoId === repair.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ThumbsUp className="w-3.5 h-3.5" />}
+                                            </button>
+                                        )}
+                                        {canManage(userRole) && (
+                                            <button
+                                                onClick={() => setDetallesRepair(repair)}
+                                                className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-zinc-300 text-xs font-semibold transition-all"
+                                                title="Editar detalles"
+                                            >
+                                                <SlidersHorizontal className="w-3.5 h-3.5 text-zinc-400" />
+                                            </button>
+                                        )}
                                         <button
                                             onClick={() => setSelectedRepair(repair)}
                                             className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-white text-xs font-semibold transition-all"
@@ -494,7 +583,7 @@ export default function TallerClient({ userRole, userId }: Props) {
                                             <FileText className="w-3.5 h-3.5 text-zinc-400" />
                                             Bitácora
                                         </button>
-                                        
+
                                         {canManage(userRole) && (
                                             <div className="relative status-dropdown-container flex-[0.7]">
                                                 <button
@@ -542,6 +631,13 @@ export default function TallerClient({ userRole, userId }: Props) {
                 onClose={() => { setSelectedRepair(null); loadRepairs() }}
                 repair={selectedRepair}
                 userRole={userRole}
+            />
+
+            <DetallesOrdenModal
+                isOpen={!!detallesRepair}
+                onClose={() => setDetallesRepair(null)}
+                repair={detallesRepair}
+                onSaved={loadRepairs}
             />
 
             <CreateRepairDrawer

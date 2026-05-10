@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import { insertNotificationAction } from '@/lib/actions/notifications'
 
 // ── Types ──────────────────────────────────────────────────
 
@@ -38,7 +39,7 @@ async function getWorkshopId() {
     const profileAny = profile as any
 
     if (profileAny?.workshop_id) {
-        return { supabase, workshopId: profileAny.workshop_id }
+        return { supabase, workshopId: profileAny.workshop_id as string, userId: user.id }
     }
 
     if (profileAny?.role === 'superadmin') {
@@ -52,7 +53,7 @@ async function getWorkshopId() {
 
         const workshopAny = workshop as any
         if (workshopAny?.id) {
-            return { supabase, workshopId: workshopAny.id }
+            return { supabase, workshopId: workshopAny.id as string, userId: user.id }
         }
     }
 
@@ -81,7 +82,7 @@ export async function getInventoryItemsAction(): Promise<{ ok: true; data: Inven
 
 export async function createInventoryItemAction(params: SaveInventoryItemParams): Promise<{ ok: true; data: InventoryItem } | { ok: false; error: string }> {
     try {
-        const { supabase, workshopId } = await getWorkshopId()
+        const { supabase, workshopId, userId } = await getWorkshopId()
 
         const { data, error } = await (supabase.from('inventory_items') as any).insert({
             ...params,
@@ -89,6 +90,21 @@ export async function createInventoryItemAction(params: SaveInventoryItemParams)
         }).select().single()
 
         if (error) throw error
+
+        void insertNotificationAction({
+            workshopId,
+            actorId:   userId,
+            actorName: null,
+            type:      'inventory_created',
+            title:     'Producto registrado en inventario',
+            body:      (params.name ?? 'Producto') + (params.category ? ` · ${params.category}` : ''),
+            metadata:  {
+                item_id:  (data as any).id,
+                name:     params.name ?? null,
+                category: params.category ?? null,
+                sku:      params.sku ?? null,
+            },
+        })
 
         revalidatePath('/admin/inventario')
         return { ok: true, data: data as InventoryItem }
