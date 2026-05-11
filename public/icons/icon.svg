@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <rect width="512" height="512" rx="112" fill="#09090b"/>
+  <rect width="512" height="512" rx="112" fill="url(#grad)"/>
+  <defs>
+    <linearGradient id="grad" x1="0" y1="0" x2="512" y2="512" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#ea580c"/>
+      <stop offset="100%" stop-color="#f97316"/>
+    </linearGradient>
+  </defs>
+  <!-- Wrench icon centered -->
+  <path d="M320 96c-35.3 0-64 28.7-64 64 0 8.4 1.6 16.4 4.5 23.8L128 416l32 32 232.2-132.5c7.4 2.9 15.4 4.5 23.8 4.5 35.3 0 64-28.7 64-64 0-8.4-1.6-16.4-4.5-23.8l-47.3 47.3-42.7-42.7 47.3-47.3C425.6 192.5 416 192 416 192c-35.3 0-64-28.7-64-64 0-8.4 1.6-16.4 4.5-23.8C348.6 101.8 334.7 96 320 96z" fill="white" opacity="0.95"/>
+  <circle cx="136" cy="408" r="28" fill="white" opacity="0.8"/>
+</svg>

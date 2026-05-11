@@ -5,14 +5,15 @@ import { Menu } from 'lucide-react'
 import NotificationBell from '@/components/admin/notifications/NotificationBell'
 
 const TITULOS: Record<string, string> = {
-    '/admin/dashboard': 'Dashboard',
-    '/admin/taller': 'Taller',
-    '/admin/agenda': 'Agenda & Citas',
-    '/admin/clientes': 'Gestión de Clientes',
-    '/admin/inventario': 'Inventario',
-    '/admin/empleados': 'Empleados',
-    '/admin/builder': 'Constructor Landing',
+    '/admin/dashboard':     'Dashboard',
+    '/admin/taller':        'Taller',
+    '/admin/agenda':        'Agenda & Citas',
+    '/admin/clientes':      'Gestión de Clientes',
+    '/admin/inventario':    'Inventario',
+    '/admin/empleados':     'Empleados',
+    '/admin/builder':       'Constructor Landing',
     '/admin/configuracion': 'Configuración',
+    '/admin/contabilidad':  'Contabilidad & Flujo de Caja',
 }
 
 const ROLE_LABELS: Record<string, string> = {

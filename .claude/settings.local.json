@@ -30,7 +30,13 @@
       "PowerShell($env:PATH = [System.Environment]::GetEnvironmentVariable\\(\"PATH\", \"Machine\"\\) + \";\" + [System.Environment]::GetEnvironmentVariable\\(\"PATH\", \"User\"\\); python -m pip install caveman humanizer napkin token-optimizer skill-creator 2>&1)",
       "PowerShell($env:PATH = [System.Environment]::GetEnvironmentVariable\\(\"PATH\", \"Machine\"\\) + \";\" + [System.Environment]::GetEnvironmentVariable\\(\"PATH\", \"User\"\\); python -m pip install caveman napkin token-optimizer skill-creator 2>&1)",
       "PowerShell($env:PATH = [System.Environment]::GetEnvironmentVariable\\(\"PATH\", \"Machine\"\\) + \";\" + [System.Environment]::GetEnvironmentVariable\\(\"PATH\", \"User\"\\); python -m pip install caveman napkin skill-creator 2>&1)",
-      "PowerShell($env:PATH = [System.Environment]::GetEnvironmentVariable\\(\"PATH\", \"Machine\"\\) + \";\" + [System.Environment]::GetEnvironmentVariable\\(\"PATH\", \"User\"\\); python -m pip install caveman napkin 2>&1)"
+      "PowerShell($env:PATH = [System.Environment]::GetEnvironmentVariable\\(\"PATH\", \"Machine\"\\) + \";\" + [System.Environment]::GetEnvironmentVariable\\(\"PATH\", \"User\"\\); python -m pip install caveman napkin 2>&1)",
+      "Bash(python -c \"import sys,json; pkg=json.load\\(sys.stdin\\); deps={**pkg.get\\('dependencies',{}\\), **pkg.get\\('devDependencies',{}\\)}; [print\\(k,v\\) for k,v in sorted\\(deps.items\\(\\)\\)]\")",
+      "Bash(New-Item -ItemType Directory -Force -Path \"C:\\\\Users\\\\Administrator\\\\Desktop\\\\Mechss\\\\Mechss\\\\src\\\\app\\\\cliente\")",
+      "Bash(Out-Null)",
+      "Bash(New-Item -ItemType Directory -Force -Path \"C:\\\\Users\\\\Administrator\\\\Desktop\\\\Mechss\\\\Mechss\\\\src\\\\app\\\\cliente\\\\[tracking]\")",
+      "Bash(Write-Host \"OK\")",
+      "PowerShell(New-Item *)"
     ]
   }
 }

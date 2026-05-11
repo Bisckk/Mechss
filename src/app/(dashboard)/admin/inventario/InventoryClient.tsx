@@ -48,11 +48,16 @@ export default function InventoryClient({ initialItems }: { initialItems: Invent
     const stats = useMemo(() => {
         const totalProducts = items.length
         const published = items.filter(i => i.is_published).length
-        const lowStock = items.filter(i => i.stock_quantity <= 2 && i.stock_quantity > 0).length
+        const lowStock = items.filter(i => i.stock_quantity > 0 && i.stock_quantity <= (i.min_stock || 2)).length
         const outOfStock = items.filter(i => i.stock_quantity === 0).length
         const totalValue = items.reduce((acc, i) => acc + (i.sale_price * i.stock_quantity), 0)
         return { totalProducts, published, lowStock, outOfStock, totalValue }
     }, [items])
+
+    const lowStockItems = useMemo(
+        () => items.filter(i => i.stock_quantity <= (i.min_stock || 0) && (i.min_stock || 0) > 0),
+        [items]
+    )
 
     const filteredItems = items.filter(item => {
         const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) || (item.description && item.description.toLowerCase().includes(searchTerm.toLowerCase()))
@@ -95,6 +100,7 @@ export default function InventoryClient({ initialItems }: { initialItems: Invent
                 cost_price: 0,
                 sale_price: 0,
                 stock_quantity: 0,
+                min_stock: 0,
                 is_published: false,
                 image_url: ''
             })
@@ -191,6 +197,21 @@ export default function InventoryClient({ initialItems }: { initialItems: Invent
                     </div>
                 ))}
             </div>
+
+            {/* Low-stock alert banner */}
+            {lowStockItems.length > 0 && (
+                <div className="flex items-start gap-3 bg-amber-500/8 border border-amber-500/20 rounded-2xl px-5 py-4">
+                    <AlertCircle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+                    <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-amber-400">
+                            {lowStockItems.length} {lowStockItems.length === 1 ? 'producto por debajo' : 'productos por debajo'} del stock mínimo
+                        </p>
+                        <p className="text-xs text-amber-400/70 mt-0.5">
+                            {lowStockItems.slice(0, 3).map(i => i.name).join(', ')}{lowStockItems.length > 3 ? ` y ${lowStockItems.length - 3} más` : ''}
+                        </p>
+                    </div>
+                </div>
+            )}
 
             {/* Filters & View Toggle */}
             <div className="flex flex-col sm:flex-row gap-3">
@@ -491,7 +512,7 @@ export default function InventoryClient({ initialItems }: { initialItems: Invent
                                 <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
                                     <DollarSign className="w-4 h-4 text-orange-400" /> Precio e Inventario
                                 </h3>
-                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
                                     {/* Costo */}
                                     <div>
                                         <label className="text-xs font-semibold text-zinc-400">Costo (COP)</label>
@@ -526,7 +547,7 @@ export default function InventoryClient({ initialItems }: { initialItems: Invent
 
                                     {/* Stock */}
                                     <div>
-                                        <label className="text-xs font-semibold text-zinc-400">Unidades en Stock</label>
+                                        <label className="text-xs font-semibold text-zinc-400">Stock Actual</label>
                                         <input
                                             type="text"
                                             inputMode="numeric"
@@ -534,6 +555,19 @@ export default function InventoryClient({ initialItems }: { initialItems: Invent
                                             onChange={(e) => setSelectedItem({ ...selectedItem, stock_quantity: parseInt(e.target.value.replace(/[^0-9]/g, '')) || 0 })}
                                             className="w-full mt-1 bg-black/40 border border-white/5 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-orange-500/50 min-h-[44px]"
                                             placeholder="10"
+                                        />
+                                    </div>
+
+                                    {/* Min Stock */}
+                                    <div>
+                                        <label className="text-xs font-semibold text-zinc-400">Stock Mínimo</label>
+                                        <input
+                                            type="text"
+                                            inputMode="numeric"
+                                            value={selectedItem.min_stock || ''}
+                                            onChange={(e) => setSelectedItem({ ...selectedItem, min_stock: parseInt(e.target.value.replace(/[^0-9]/g, '')) || 0 })}
+                                            className="w-full mt-1 bg-black/40 border border-white/5 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-amber-500/50 min-h-[44px]"
+                                            placeholder="3"
                                         />
                                     </div>
                                 </div>

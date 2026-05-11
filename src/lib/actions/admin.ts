@@ -507,8 +507,8 @@ export async function getActiveRepairsAction(mechanicId?: string): Promise<Actio
             .from('repairs')
             .select(`
                 id, tracking_code, status, reported_issue, created_at,
-                estimated_completion, estimated_cost, vehicle_brand, vehicle_model,
-                vehicle_year, vehicle_plate, mechanic_id,
+                estimated_completion, estimated_cost, final_cost, payment_status,
+                vehicle_brand, vehicle_model, vehicle_year, vehicle_plate, mechanic_id,
                 clients!client_id ( id, full_name, phone ),
                 mechanic:users!mechanic_id ( id, full_name )
             `)

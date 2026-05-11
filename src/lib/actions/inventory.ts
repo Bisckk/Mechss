@@ -16,6 +16,7 @@ export interface InventoryItem {
     cost_price: number
     sale_price: number
     stock_quantity: number
+    min_stock: number
     is_published: boolean
     image_url: string | null
     created_at: string

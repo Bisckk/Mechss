@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { gsap } from 'gsap'
 import {
     LayoutDashboard, CalendarRange, UsersRound, Package,
-    UserCog, Laptop, Settings, LogOut, X, Wrench
+    UserCog, Laptop, Settings, LogOut, X, Wrench, BarChart3
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
@@ -39,9 +39,10 @@ const ALL_NAV: NavSection[] = [
     {
         seccion: 'Gestión',
         items: [
-            { href: '/admin/clientes', label: 'Clientes', Icon: UsersRound, roles: ['admin', 'receptionist'] },
-            { href: '/admin/inventario', label: 'Inventario', Icon: Package, roles: ['admin', 'receptionist'] },
-            { href: '/admin/empleados', label: 'Empleados', Icon: UserCog, roles: ['admin'] },
+            { href: '/admin/clientes',      label: 'Clientes',      Icon: UsersRound, roles: ['admin', 'receptionist'] },
+            { href: '/admin/inventario',    label: 'Inventario',    Icon: Package,    roles: ['admin', 'receptionist'] },
+            { href: '/admin/empleados',     label: 'Empleados',     Icon: UserCog,    roles: ['admin'] },
+            { href: '/admin/contabilidad',  label: 'Contabilidad',  Icon: BarChart3,  roles: ['admin'] },
         ],
     },
     {

@@ -1,15 +1,15 @@
-import { createClient } from '@/lib/supabase/server'
-import { Settings, Info, Briefcase, KeyRound, Camera, Globe } from 'lucide-react'
+import { Info, Briefcase, KeyRound, Camera, Globe } from 'lucide-react'
 import DashboardAnimator from '@/components/ui/DashboardAnimator'
+import { getWhatsAppConfigAction } from '@/lib/actions/whatsapp'
+import WhatsAppConfigClient from './WhatsAppConfigClient'
 
 export const metadata = {
     title: 'Configuración | MotoFix Admin',
 }
 
 export default async function AdminConfiguracionPage() {
-    const supabase = await createClient()
-
-    // Future backend fetch configuration for current workshop
+    const waRes = await getWhatsAppConfigAction()
+    const waConfig = waRes.ok ? waRes.data : null
 
     return (
         <div className="space-y-6 max-w-4xl mx-auto pb-10">
@@ -84,6 +84,11 @@ export default async function AdminConfiguracionPage() {
                         Cambiar Contraseña
                     </button>
                 </section>
+
+                {/* WhatsApp Business */}
+                <div className="dash-section">
+                    <WhatsAppConfigClient initialConfig={waConfig} />
+                </div>
 
             </div>
 

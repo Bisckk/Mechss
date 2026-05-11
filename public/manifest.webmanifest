@@ -1,0 +1,65 @@
+{
+  "name": "MotoFix — Gestión de Talleres",
+  "short_name": "MotoFix",
+  "description": "La plataforma SaaS todo-en-uno para talleres de motos. Gestiona órdenes, inventario y clientes desde tu celular.",
+  "start_url": "/admin/taller",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#09090b",
+  "theme_color": "#f97316",
+  "categories": ["business", "productivity"],
+  "lang": "es",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/icons/screenshot-wide.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Panel de administración MotoFix"
+    },
+    {
+      "src": "/icons/screenshot-narrow.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Taller en tiempo real"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Taller Activo",
+      "short_name": "Taller",
+      "description": "Ver órdenes activas del taller",
+      "url": "/admin/taller",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Rastreo de Órdenes",
+      "short_name": "Rastrear",
+      "description": "Rastrear una reparación por código",
+      "url": "/rastreo",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}
