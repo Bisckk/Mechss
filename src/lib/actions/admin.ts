@@ -18,6 +18,14 @@ export interface CreateClientData {
     notes?: string
 }
 
+export interface UpdateClientData {
+    full_name: string
+    phone: string
+    email?: string
+    address?: string
+    notes?: string
+}
+
 export interface CreateVehicleData {
     client_id: string
     plate: string
@@ -198,6 +206,55 @@ export async function getRecentClientsAction(): Promise<ActionResult<any[]>> {
         return { ok: true, data: data || [] }
     } catch (e: any) {
         return { ok: false, error: e.message }
+    }
+}
+
+export async function updateClientAction(
+    clientId: string,
+    fd: UpdateClientData
+): Promise<ActionResult<null>> {
+    try {
+        const { supabase } = await getAuthClient()
+
+        if (!fd.full_name.trim()) return { ok: false, error: 'El nombre es obligatorio.' }
+        if (!fd.phone.trim()) return { ok: false, error: 'El teléfono es obligatorio.' }
+
+        const { error } = await (supabase.from('clients') as any)
+            .update({
+                full_name: fd.full_name.trim(),
+                phone:     fd.phone.trim() || null,
+                email:     fd.email?.trim()   || null,
+                address:   fd.address?.trim() || null,
+                notes:     fd.notes?.trim()   || null,
+            })
+            .eq('id', clientId)
+
+        if (error) return { ok: false, error: error.message }
+
+        revalidatePath('/admin/clientes')
+        return { ok: true, data: null }
+    } catch (e: any) {
+        return { ok: false, error: e.message || 'Error al actualizar cliente' }
+    }
+}
+
+export async function toggleClientStatusAction(
+    clientId: string,
+    newStatus: boolean
+): Promise<ActionResult<null>> {
+    try {
+        const { supabase } = await getAuthClient()
+
+        const { error } = await (supabase.from('clients') as any)
+            .update({ is_active: newStatus })
+            .eq('id', clientId)
+
+        if (error) return { ok: false, error: error.message }
+
+        revalidatePath('/admin/clientes')
+        return { ok: true, data: null }
+    } catch (e: any) {
+        return { ok: false, error: e.message || 'Error al cambiar estado del cliente' }
     }
 }
 

@@ -1,10 +1,12 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
-import { Plus, Search, UsersRound, CalendarIcon, Car, MoreVertical, MapPin, Mail, Phone, ChevronRight, Eye, Pencil, Power } from 'lucide-react'
+import { useState, useRef, useEffect, useTransition } from 'react'
+import { Plus, Search, UsersRound, CalendarIcon, Car, MoreVertical, Mail, Phone, ChevronRight, Eye, Pencil, Power, Loader2 } from 'lucide-react'
 import { gsap } from 'gsap'
 import ClientDetailsDrawer from '@/components/admin/clientes/ClientDetailsDrawer'
 import NewClientDrawer from '@/components/admin/clientes/NewClientDrawer'
+import EditClientModal from '@/components/admin/clientes/EditClientModal'
+import { toggleClientStatusAction } from '@/lib/actions/admin'
 
 // Define the client type inline based on the Supabase schema
 type DbClient = {
@@ -12,6 +14,8 @@ type DbClient = {
     full_name: string;
     email: string | null;
     phone: string | null;
+    address?: string | null;
+    notes?: string | null;
     created_at: string;
     is_active: boolean;
 }
@@ -31,6 +35,9 @@ export default function ClientesClient({ initialClients }: ClientesClientProps) 
     const [activeMenu, setActiveMenu] = useState<string | null>(null)
     const [detailsClient, setDetailsClient] = useState<DbClient | null>(null)
     const [newClientOpen, setNewClientOpen] = useState(false)
+    const [editClient, setEditClient] = useState<DbClient | null>(null)
+    const [toggling, setToggling] = useState<string | null>(null)
+    const [, startTransition] = useTransition()
     const menuRef = useRef<HTMLDivElement>(null)
 
     const filteredClients = clients.filter(c =>
@@ -38,6 +45,20 @@ export default function ClientesClient({ initialClients }: ClientesClientProps) 
         c.phone?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         c.email?.toLowerCase().includes(searchQuery.toLowerCase())
     )
+
+    const handleToggleStatus = (client: ClientWithCounts) => {
+        setActiveMenu(null)
+        setToggling(client.id)
+        startTransition(async () => {
+            const res = await toggleClientStatusAction(client.id, !client.is_active)
+            if (res.ok) {
+                setClients(prev => prev.map(c =>
+                    c.id === client.id ? { ...c, is_active: !client.is_active } : c
+                ))
+            }
+            setToggling(null)
+        })
+    }
 
     // Entrance animation on mount
     useEffect(() => {
@@ -129,15 +150,20 @@ export default function ClientesClient({ initialClients }: ClientesClientProps) 
                                                 <Eye className="w-4 h-4 text-zinc-400" /> Ver Detalles
                                             </button>
                                             <button className="w-full flex items-center gap-2.5 px-4 py-2 hover:bg-white/5 text-sm text-white transition-colors text-left"
-                                                onClick={(e) => { e.stopPropagation(); setActiveMenu(null); /* TODO: edit */ }}
+                                                onClick={(e) => { e.stopPropagation(); setActiveMenu(null); setEditClient(client); }}
                                             >
                                                 <Pencil className="w-4 h-4 text-zinc-400" /> Editar Cliente
                                             </button>
                                             <div className="h-px bg-white/5 my-1.5"></div>
-                                            <button className={`w-full flex items-center gap-2.5 px-4 py-2 text-sm transition-colors text-left ${client.is_active ? 'hover:bg-rose-500/10 text-rose-400' : 'hover:bg-emerald-500/10 text-emerald-400'}`}
-                                                onClick={(e) => { e.stopPropagation(); setActiveMenu(null); /* TODO: toggle status */ }}
+                                            <button
+                                                className={`w-full flex items-center gap-2.5 px-4 py-2 text-sm transition-colors text-left ${client.is_active ? 'hover:bg-rose-500/10 text-rose-400' : 'hover:bg-emerald-500/10 text-emerald-400'}`}
+                                                onClick={(e) => { e.stopPropagation(); handleToggleStatus(client); }}
+                                                disabled={toggling === client.id}
                                             >
-                                                <Power className="w-4 h-4 opacity-80" />
+                                                {toggling === client.id
+                                                    ? <Loader2 className="w-4 h-4 animate-spin opacity-60" />
+                                                    : <Power className="w-4 h-4 opacity-80" />
+                                                }
                                                 {client.is_active ? 'Inactivar' : 'Activar'}
                                             </button>
                                         </div>
@@ -233,6 +259,21 @@ export default function ClientesClient({ initialClients }: ClientesClientProps) 
                 onCreated={(newClient) => {
                     setClients(prev => [newClient, ...prev])
                     setNewClientOpen(false)
+                }}
+            />
+
+            {/* Edit Client Modal */}
+            <EditClientModal
+                isOpen={editClient !== null}
+                client={editClient}
+                onClose={() => setEditClient(null)}
+                onUpdated={(updated) => {
+                    setClients(prev => prev.map(c =>
+                        c.id === updated.id
+                            ? { ...c, full_name: updated.full_name, phone: updated.phone, email: updated.email }
+                            : c
+                    ))
+                    setEditClient(null)
                 }}
             />
         </div>

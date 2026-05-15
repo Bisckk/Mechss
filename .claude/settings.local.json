@@ -36,7 +36,13 @@
       "Bash(Out-Null)",
       "Bash(New-Item -ItemType Directory -Force -Path \"C:\\\\Users\\\\Administrator\\\\Desktop\\\\Mechss\\\\Mechss\\\\src\\\\app\\\\cliente\\\\[tracking]\")",
       "Bash(Write-Host \"OK\")",
-      "PowerShell(New-Item *)"
+      "PowerShell(New-Item *)",
+      "Bash(findstr \"user\\\\.\")",
+      "Bash(git credential-manager *)",
+      "Bash(gh --version)",
+      "Bash(gh auth *)",
+      "Bash(git --version)",
+      "Bash(where git *)"
     ]
   }
 }
