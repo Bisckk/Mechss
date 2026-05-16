@@ -2,6 +2,7 @@ import { Info, Briefcase, KeyRound, Camera, Globe } from 'lucide-react'
 import DashboardAnimator from '@/components/ui/DashboardAnimator'
 import { getWhatsAppConfigAction } from '@/lib/actions/whatsapp'
 import WhatsAppConfigClient from './WhatsAppConfigClient'
+import TwoFactorClient from '@/components/admin/configuracion/TwoFactorClient'
 
 export const metadata = {
     title: 'Configuración | MotoFix Admin',
@@ -80,9 +81,15 @@ export default async function AdminConfiguracionPage() {
                         <KeyRound className="w-5 h-5 text-zinc-500" /> Seguridad
                     </h2>
 
-                    <button className="bg-white/5 hover:bg-white/10 border border-white/10 text-white px-4 py-2 rounded-xl text-sm font-semibold transition-colors">
-                        Cambiar Contraseña
-                    </button>
+                    <div className="space-y-5">
+                        <button className="bg-white/5 hover:bg-white/10 border border-white/10 text-white px-4 py-2 rounded-xl text-sm font-semibold transition-colors">
+                            Cambiar Contraseña
+                        </button>
+
+                        <div className="h-px bg-white/5" />
+
+                        <TwoFactorClient />
+                    </div>
                 </section>
 
                 {/* WhatsApp Business */}

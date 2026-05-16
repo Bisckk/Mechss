@@ -6,6 +6,15 @@ import type { UserRole } from '@/lib/supabase/types'
 
 type CookieEntry = { name: string; value: string; options?: CookieOptions }
 
+function applySecurityHeaders(res: NextResponse): NextResponse {
+  res.headers.set('X-Content-Type-Options', 'nosniff')
+  res.headers.set('X-Frame-Options', 'DENY')
+  res.headers.set('X-XSS-Protection', '1; mode=block')
+  res.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
+  res.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
+  return res
+}
+
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
 
@@ -37,18 +46,17 @@ export async function middleware(request: NextRequest) {
   // If the user must change their password, block every route except /change-password
   if (user && !isAuthPage && pathname !== '/change-password') {
     if (user.app_metadata?.must_change_password === true) {
-      return NextResponse.redirect(new URL('/change-password', request.url))
+      return applySecurityHeaders(NextResponse.redirect(new URL('/change-password', request.url)))
     }
   }
 
   // Redirect unauthenticated users away from protected routes
   if (pathname.startsWith('/dashboard') && !user) {
-    return NextResponse.redirect(new URL('/login', request.url))
+    return applySecurityHeaders(NextResponse.redirect(new URL('/login', request.url)))
   }
 
   // Redirect authenticated users away from auth pages → role-aware dashboard
   if (isAuthPage && user) {
-    // Still let must_change_password users reach /change-password (handled above)
     const { data: profileData } = await supabase
       .from('users')
       .select('role')
@@ -57,10 +65,10 @@ export async function middleware(request: NextRequest) {
 
     const role = (profileData as { role: UserRole } | null)?.role
     const target = role ? getRoleDashboardPath(role) : '/dashboard'
-    return NextResponse.redirect(new URL(target, request.url))
+    return applySecurityHeaders(NextResponse.redirect(new URL(target, request.url)))
   }
 
-  return supabaseResponse
+  return applySecurityHeaders(supabaseResponse)
 }
 
 export const config = {

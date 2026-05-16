@@ -7,12 +7,18 @@ import { createClient } from '@/lib/supabase/client'
 import { getRoleDashboardPath } from '@/lib/utils'
 import type { UserRole } from '@/lib/supabase/types'
 
+type Step = 'password' | 'mfa'
+
 export default function LoginForm() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [step, setStep] = useState<Step>('password')
+  const [mfaFactorId, setMfaFactorId] = useState('')
+  const [mfaChallengeId, setMfaChallengeId] = useState('')
+  const [totpCode, setTotpCode] = useState('')
   const formRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
 
@@ -27,13 +33,30 @@ export default function LoginForm() {
     return () => ctx.revert()
   }, [])
 
+  async function redirectByRole() {
+    const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      setError('La autenticación falló. Por favor intenta de nuevo.')
+      setLoading(false)
+      return
+    }
+    const { data: profileData } = await supabase
+      .from('users')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+    const role = (profileData as { role: UserRole } | null)?.role
+    router.push(role ? getRoleDashboardPath(role) : '/dashboard')
+    router.refresh()
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError(null)
 
     const supabase = createClient()
-
     const { error: authError } = await supabase.auth.signInWithPassword({ email, password })
 
     if (authError) {
@@ -42,112 +65,201 @@ export default function LoginForm() {
       return
     }
 
-    const { data: { user } } = await supabase.auth.getUser()
+    // Check if MFA upgrade is required
+    const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel()
+    if (aal?.nextLevel === 'aal2' && aal.currentLevel !== aal.nextLevel) {
+      const { data: factors } = await supabase.auth.mfa.listFactors()
+      const fid = factors?.totp?.[0]?.id
+      if (fid) {
+        const { data: ch } = await supabase.auth.mfa.challenge({ factorId: fid })
+        setMfaFactorId(fid)
+        setMfaChallengeId(ch?.id ?? '')
+        setTotpCode('')
+        setStep('mfa')
+        setLoading(false)
+        return
+      }
+    }
 
-    if (!user) {
-      setError('La autenticación falló. Por favor intenta de nuevo.')
+    await redirectByRole()
+  }
+
+  const handleMfaSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (totpCode.length !== 6) return
+    setLoading(true)
+    setError(null)
+
+    const supabase = createClient()
+    const { error: verifyErr } = await supabase.auth.mfa.verify({
+      factorId: mfaFactorId,
+      challengeId: mfaChallengeId,
+      code: totpCode,
+    })
+
+    if (verifyErr) {
+      setError('Código incorrecto. Inténtalo de nuevo.')
+      setTotpCode('')
+      const { data: ch } = await supabase.auth.mfa.challenge({ factorId: mfaFactorId })
+      setMfaChallengeId(ch?.id ?? '')
       setLoading(false)
       return
     }
 
-    const { data: profileData } = await supabase
-      .from('users')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-
-    const role = (profileData as { role: UserRole } | null)?.role
-    router.push(role ? getRoleDashboardPath(role) : '/dashboard')
-    router.refresh()
+    await redirectByRole()
   }
 
   return (
     <div ref={formRef}>
-      <form onSubmit={handleSubmit} className="space-y-5" noValidate>
-        {/* Email */}
-        <div className="login-field">
-          <label className="block text-sm font-medium text-zinc-300 mb-2" htmlFor="email">
-            Correo electrónico
-          </label>
-          <input
-            id="email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            autoComplete="email"
-            placeholder="tu@taller.com"
-            className="w-full px-4 py-3 bg-zinc-800/50 border border-zinc-700 hover:border-zinc-600 rounded-xl text-white placeholder-zinc-600 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500/50 transition-all duration-200"
-          />
-        </div>
-
-        {/* Password */}
-        <div className="login-field">
-          <label className="block text-sm font-medium text-zinc-300 mb-2" htmlFor="password">
-            Contraseña
-          </label>
-          <div className="relative">
+      {/* Password step */}
+      {step === 'password' && (
+        <form onSubmit={handleSubmit} className="space-y-5" noValidate>
+          {/* Email */}
+          <div className="login-field">
+            <label className="block text-sm font-medium text-zinc-300 mb-2" htmlFor="email">
+              Correo electrónico
+            </label>
             <input
-              id="password"
-              type={showPassword ? 'text' : 'password'}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               required
-              autoComplete="current-password"
-              placeholder="••••••••••"
-              className="w-full px-4 py-3 pr-12 bg-zinc-800/50 border border-zinc-700 hover:border-zinc-600 rounded-xl text-white placeholder-zinc-600 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500/50 transition-all duration-200"
+              autoComplete="email"
+              placeholder="tu@taller.com"
+              className="w-full px-4 py-3 bg-zinc-800/50 border border-zinc-700 hover:border-zinc-600 rounded-xl text-white placeholder-zinc-600 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500/50 transition-all duration-200"
             />
+          </div>
+
+          {/* Password */}
+          <div className="login-field">
+            <label className="block text-sm font-medium text-zinc-300 mb-2" htmlFor="password">
+              Contraseña
+            </label>
+            <div className="relative">
+              <input
+                id="password"
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                autoComplete="current-password"
+                placeholder="••••••••••"
+                className="w-full px-4 py-3 pr-12 bg-zinc-800/50 border border-zinc-700 hover:border-zinc-600 rounded-xl text-white placeholder-zinc-600 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500/50 transition-all duration-200"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition-colors"
+                aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+              >
+                {showPassword ? <EyeOffIcon /> : <EyeIcon />}
+              </button>
+            </div>
+          </div>
+
+          {/* Error */}
+          {error && (
+            <div className="login-field flex items-start gap-2.5 p-3.5 bg-red-500/8 border border-red-500/20 rounded-xl text-red-400 text-sm">
+              <AlertIcon />
+              <span>{error}</span>
+            </div>
+          )}
+
+          {/* Options row */}
+          <div className="login-field flex items-center justify-between text-sm">
+            <label className="flex items-center gap-2 text-zinc-400 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                className="w-4 h-4 rounded border-zinc-700 bg-zinc-800 text-orange-500 focus:ring-orange-500 focus:ring-offset-zinc-950"
+              />
+              Recuérdame
+            </label>
+            <a href="/forgot-password" className="text-orange-400 hover:text-orange-300 transition-colors font-medium">
+              ¿Olvidaste tu contraseña?
+            </a>
+          </div>
+
+          {/* Submit */}
+          <div className="login-field">
             <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition-colors"
-              aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+              type="submit"
+              disabled={loading}
+              className="w-full py-4 bg-orange-500 hover:bg-orange-400 disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold text-base rounded-xl transition-all duration-200 shadow-lg shadow-orange-500/20 hover:shadow-orange-500/35 hover:-translate-y-0.5 active:translate-y-0"
             >
-              {showPassword ? <EyeOffIcon /> : <EyeIcon />}
+              {loading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <SpinnerIcon />
+                  Iniciando sesión…
+                </span>
+              ) : (
+                'Iniciar Sesión'
+              )}
             </button>
           </div>
-        </div>
+        </form>
+      )}
 
-        {/* Error */}
-        {error && (
-          <div className="login-field flex items-start gap-2.5 p-3.5 bg-red-500/8 border border-red-500/20 rounded-xl text-red-400 text-sm">
-            <AlertIcon />
-            <span>{error}</span>
+      {/* MFA step */}
+      {step === 'mfa' && (
+        <form onSubmit={handleMfaSubmit} className="space-y-5" noValidate>
+          <div className="login-field text-center">
+            <div className="w-14 h-14 rounded-full bg-orange-500/10 border border-orange-500/20 flex items-center justify-center mx-auto mb-4">
+              <ShieldCheckIcon />
+            </div>
+            <h3 className="text-white font-bold text-lg">Verificación en dos pasos</h3>
+            <p className="text-zinc-400 text-sm mt-1.5">Ingresa el código de 6 dígitos de tu aplicación autenticadora</p>
           </div>
-        )}
 
-        {/* Options row */}
-        <div className="login-field flex items-center justify-between text-sm">
-          <label className="flex items-center gap-2 text-zinc-400 cursor-pointer select-none">
+          <div className="login-field">
             <input
-              type="checkbox"
-              className="w-4 h-4 rounded border-zinc-700 bg-zinc-800 text-orange-500 focus:ring-orange-500 focus:ring-offset-zinc-950"
+              type="text"
+              inputMode="numeric"
+              maxLength={6}
+              value={totpCode}
+              onChange={e => setTotpCode(e.target.value.replace(/\D/g, ''))}
+              placeholder="000000"
+              autoFocus
+              autoComplete="one-time-code"
+              className="w-full px-4 py-4 bg-zinc-800/50 border border-zinc-700 hover:border-zinc-600 rounded-xl text-white text-center text-2xl font-mono tracking-[0.5em] focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500/50 transition-all duration-200 placeholder:tracking-normal placeholder:text-zinc-600"
             />
-            Recuérdame
-          </label>
-          <a href="/forgot-password" className="text-orange-400 hover:text-orange-300 transition-colors font-medium">
-            ¿Olvidaste tu contraseña?
-          </a>
-        </div>
+          </div>
 
-        {/* Submit */}
-        <div className="login-field">
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-4 bg-orange-500 hover:bg-orange-400 disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold text-base rounded-xl transition-all duration-200 shadow-lg shadow-orange-500/20 hover:shadow-orange-500/35 hover:-translate-y-0.5 active:translate-y-0"
-          >
-            {loading ? (
-              <span className="flex items-center justify-center gap-2">
-                <SpinnerIcon />
-                Iniciando sesión…
-              </span>
-            ) : (
-              'Iniciar Sesión'
-            )}
-          </button>
-        </div>
-      </form>
+          {error && (
+            <div className="login-field flex items-start gap-2.5 p-3.5 bg-red-500/8 border border-red-500/20 rounded-xl text-red-400 text-sm">
+              <AlertIcon />
+              <span>{error}</span>
+            </div>
+          )}
+
+          <div className="login-field">
+            <button
+              type="submit"
+              disabled={loading || totpCode.length !== 6}
+              className="w-full py-4 bg-orange-500 hover:bg-orange-400 disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold text-base rounded-xl transition-all duration-200 shadow-lg shadow-orange-500/20 hover:shadow-orange-500/35 hover:-translate-y-0.5 active:translate-y-0"
+            >
+              {loading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <SpinnerIcon />
+                  Verificando…
+                </span>
+              ) : (
+                'Verificar Código'
+              )}
+            </button>
+          </div>
+
+          <div className="login-field text-center">
+            <button
+              type="button"
+              onClick={() => { setStep('password'); setError(null); setTotpCode('') }}
+              className="text-sm text-zinc-500 hover:text-zinc-300 transition-colors"
+            >
+              ← Volver al inicio de sesión
+            </button>
+          </div>
+        </form>
+      )}
     </div>
   )
 }
@@ -182,6 +294,14 @@ function SpinnerIcon() {
     <svg className="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+    </svg>
+  )
+}
+
+function ShieldCheckIcon() {
+  return (
+    <svg className="w-7 h-7 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
     </svg>
   )
 }
