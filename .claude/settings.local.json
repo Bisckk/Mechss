@@ -44,7 +44,8 @@
       "Bash(git --version)",
       "Bash(where git *)",
       "Bash(npx next *)",
-      "Bash(node -e \"const p=require\\('./package.json'\\); const deps={...p.dependencies,...p.devDependencies}; const pdf=Object.keys\\(deps\\).filter\\(k=>k.includes\\('pdf'\\)||k.includes\\('jspdf'\\)||k.includes\\('print'\\)\\); console.log\\('PDF libs:', pdf\\); console.log\\('recharts:', deps.recharts\\); console.log\\('xlsx:', deps.xlsx\\);\")"
+      "Bash(node -e \"const p=require\\('./package.json'\\); const deps={...p.dependencies,...p.devDependencies}; const pdf=Object.keys\\(deps\\).filter\\(k=>k.includes\\('pdf'\\)||k.includes\\('jspdf'\\)||k.includes\\('print'\\)\\); console.log\\('PDF libs:', pdf\\); console.log\\('recharts:', deps.recharts\\); console.log\\('xlsx:', deps.xlsx\\);\")",
+      "PowerShell(grep *)"
     ]
   }
 }

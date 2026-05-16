@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useRef, useEffect, useTransition } from 'react'
-import { Plus, Search, UsersRound, CalendarIcon, Car, MoreVertical, Mail, Phone, ChevronRight, Eye, Pencil, Power, Loader2 } from 'lucide-react'
+import { Plus, Search, UsersRound, CalendarIcon, Car, MoreVertical, Mail, Phone, ChevronRight, Eye, Pencil, Power, Loader2, Download } from 'lucide-react'
+import { exportClientes } from '@/lib/utils/exportar'
 import { gsap } from 'gsap'
 import ClientDetailsDrawer from '@/components/admin/clientes/ClientDetailsDrawer'
 import NewClientDrawer from '@/components/admin/clientes/NewClientDrawer'
@@ -94,12 +95,22 @@ export default function ClientesClient({ initialClients }: ClientesClientProps) 
                     <h1 className="text-2xl font-bold text-white tracking-tight">Gestión de Clientes</h1>
                     <p className="text-zinc-400 text-sm mt-1">Administra los {clients.length} clientes registrados en tu taller.</p>
                 </div>
-                <button
-                    onClick={() => setNewClientOpen(true)}
-                    className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-xl text-sm font-semibold transition-all shadow-lg hover:shadow-orange-500/20 active:scale-95 group"
-                >
-                    <Plus className="w-4 h-4 group-hover:rotate-90 transition-transform" /> Nuevo Cliente
-                </button>
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={() => exportClientes(filteredClients.map(c => ({ ...c, city: null })))}
+                        className="flex items-center gap-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white px-4 py-2 rounded-xl text-sm font-semibold transition-all border border-white/10 active:scale-95"
+                        title="Exportar CSV"
+                    >
+                        <Download className="w-4 h-4" />
+                        <span className="hidden sm:inline">CSV</span>
+                    </button>
+                    <button
+                        onClick={() => setNewClientOpen(true)}
+                        className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-xl text-sm font-semibold transition-all shadow-lg hover:shadow-orange-500/20 active:scale-95 group"
+                    >
+                        <Plus className="w-4 h-4 group-hover:rotate-90 transition-transform" /> Nuevo Cliente
+                    </button>
+                </div>
             </div>
 
             {/* Search and Filters */}

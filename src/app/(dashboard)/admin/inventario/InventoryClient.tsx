@@ -4,8 +4,9 @@ import { useState, useMemo, useEffect, useRef } from 'react'
 import {
     Plus, Search, Filter, AlertCircle, Package, Edit, Trash2, Eye, EyeOff, Loader2,
     DollarSign, TrendingUp, ShoppingBag, BarChart3, Grid3X3, List, X, ImagePlus, Tag,
-    TriangleAlert
+    TriangleAlert, Download
 } from 'lucide-react'
+import { exportInventario } from '@/lib/utils/exportar'
 import { gsap } from 'gsap'
 import { InventoryItem, createInventoryItemAction, updateInventoryItemAction, deleteInventoryItemAction } from '@/lib/actions/inventory'
 import ImageUploader from '@/components/ui/ImageUploader'
@@ -179,9 +180,19 @@ export default function InventoryClient({ initialItems }: { initialItems: Invent
                     </h1>
                     <p className="text-zinc-400 text-sm mt-1">Administra tus repuestos y los productos de tu tienda virtual.</p>
                 </div>
-                <button onClick={() => handleOpenModal()} className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-lg hover:shadow-orange-500/20 active:scale-95">
-                    <Plus className="w-4 h-4" /> Nuevo Producto
-                </button>
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={() => exportInventario(items)}
+                        className="flex items-center gap-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-all border border-white/10 active:scale-95"
+                        title="Exportar CSV"
+                    >
+                        <Download className="w-4 h-4" />
+                        <span className="hidden sm:inline">CSV</span>
+                    </button>
+                    <button onClick={() => handleOpenModal()} className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-lg hover:shadow-orange-500/20 active:scale-95">
+                        <Plus className="w-4 h-4" /> Nuevo Producto
+                    </button>
+                </div>
             </div>
 
             {/* Stats Cards */}

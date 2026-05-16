@@ -75,11 +75,11 @@ export function printSection(elementId: string, title: string): void {
 // Predefined export helpers for common entities
 
 export function exportInventario(items: {
-    sku: string; name: string; category: string; stock_quantity: number;
+    sku: string | null; name: string; category: string; stock_quantity: number;
     min_stock: number; sale_price: number; cost_price: number | null;
 }[]): void {
     exportToCsv(items, [
-        { header: 'SKU',           accessor: r => r.sku },
+        { header: 'SKU',           accessor: r => r.sku ?? '' },
         { header: 'Nombre',        accessor: r => r.name },
         { header: 'Categoría',     accessor: r => r.category },
         { header: 'Stock',         accessor: r => r.stock_quantity },

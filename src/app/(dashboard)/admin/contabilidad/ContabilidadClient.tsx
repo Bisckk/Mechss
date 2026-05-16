@@ -8,8 +8,9 @@ import {
 import {
     TrendingUp, TrendingDown, DollarSign, Clock, Plus,
     ArrowUpCircle, ArrowDownCircle, X, CheckCircle2,
-    AlertCircle, Loader2, ReceiptText, Wallet, FileDown,
+    AlertCircle, Loader2, ReceiptText, Wallet, FileDown, Download,
 } from 'lucide-react'
+import { exportTransacciones } from '@/lib/utils/exportar'
 import MetricCard from '@/components/ui/MetricCard'
 import CardV2 from '@/components/ui/CardV2'
 import BadgeV2 from '@/components/ui/BadgeV2'
@@ -403,18 +404,27 @@ export default function ContabilidadClient({ resumen, flujo, mix, cartera, trans
                 </div>
                 <div className="flex items-center gap-2">
                     <button
+                        onClick={() => exportTransacciones(transacciones)}
+                        className="flex items-center gap-2 px-4 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white text-sm font-semibold rounded-xl transition-colors border border-white/10"
+                        title="Exportar CSV"
+                    >
+                        <Download className="w-4 h-4" />
+                        <span className="hidden sm:inline">CSV</span>
+                    </button>
+                    <button
                         onClick={exportarPDF}
                         className="flex items-center gap-2 px-4 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white text-sm font-semibold rounded-xl transition-colors border border-white/10"
                     >
                         <FileDown className="w-4 h-4" />
-                        <span className="hidden sm:inline">Exportar PDF</span>
+                        <span className="hidden sm:inline">PDF</span>
                     </button>
                     <button
                         onClick={() => setMostrarDrawer(true)}
                         className="flex items-center gap-2 px-4 py-2.5 bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold rounded-xl transition-colors shadow-lg shadow-orange-500/20"
                     >
                         <Plus className="w-4 h-4" />
-                        Nueva transacción
+                        <span className="hidden sm:inline">Nueva transacción</span>
+                        <span className="sm:hidden">Nueva</span>
                     </button>
                 </div>
             </div>

@@ -5,8 +5,9 @@ import {
     Wrench, Package, CheckCircle, Clock, AlertTriangle,
     Search, RefreshCw, ChevronRight, User, Hash, FileText, Plus, UserCog,
     ChevronDown, Check, LayoutGrid, List, SlidersHorizontal, CalendarCheck2,
-    ThumbsUp, Loader2, DollarSign, Bell, Wifi, X, Truck,
+    ThumbsUp, Loader2, DollarSign, Bell, Wifi, X, Truck, Download,
 } from 'lucide-react'
+import { exportOrdenes } from '@/lib/utils/exportar'
 import { gsap } from 'gsap'
 import { createClient } from '@/lib/supabase/client'
 import { getActiveRepairsAction, updateRepairStatusAction, aprobarCompletarAction } from '@/lib/actions/admin'
@@ -313,6 +314,13 @@ export default function TallerClient({ userRole, userId, workshopId }: Props) {
                     </div>
                     <button onClick={loadRepairs} className="p-2.5 rounded-xl bg-zinc-900 border border-white/10 text-zinc-400 hover:text-white hover:bg-white/5 transition-all flex-shrink-0" title="Refrescar">
                         <RefreshCw className="w-4 h-4" />
+                    </button>
+                    <button
+                        onClick={() => exportOrdenes(filteredRepairs)}
+                        className="p-2.5 rounded-xl bg-zinc-900 border border-white/10 text-zinc-400 hover:text-white hover:bg-white/5 transition-all flex-shrink-0"
+                        title="Exportar CSV"
+                    >
+                        <Download className="w-4 h-4" />
                     </button>
                     {canManage(userRole) && (
                         <button
