@@ -23,11 +23,10 @@ import {
     type Transaccion,
     type NuevaTransaccionParams,
     type FiltrotipoTransaccion,
-    CategoriaIngreso,
-    CategoriaGasto,
     getTransaccionesAction,
     crearTransaccionAction,
 } from '@/lib/actions/contabilidad'
+import { CategoriaIngreso, CategoriaGasto } from '@/lib/types/contabilidad'
 
 // ── Helpers ────────────────────────────────────────────────
 

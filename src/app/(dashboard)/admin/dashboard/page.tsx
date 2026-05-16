@@ -2,9 +2,10 @@ import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import {
     CalendarRange, Wrench, DollarSign, PackageOpen, ArrowUpRight,
-    CalendarPlus, UserPlus, PackagePlus, ArrowRight
+    CalendarPlus, UserPlus, PackagePlus, ArrowRight, Zap, ShieldCheck, Clock
 } from 'lucide-react'
 import DashboardAnimator from '@/components/ui/DashboardAnimator'
+import { getWorkshopPlanInfo } from '@/lib/actions/subscription'
 
 export const metadata = {
     title: 'Dashboard | MotoFix Admin',
@@ -13,12 +14,19 @@ export const metadata = {
 export default async function AdminDashboardPage() {
     const supabase = await createClient()
 
-    // Mock queries to show structural approach
-    const [{ count: todayAppointments }, { count: runningRepairs }, { count: lowStock }] = await Promise.all([
+    const [
+        { count: todayAppointments },
+        { count: runningRepairs },
+        { count: lowStock },
+        planResult,
+    ] = await Promise.all([
         supabase.from('appointments').select('*', { count: 'exact', head: true }).eq('status', 'scheduled'),
         supabase.from('repairs').select('*', { count: 'exact', head: true }).neq('status', 'delivered'),
         supabase.from('inventory').select('*', { count: 'exact', head: true }).lt('quantity', 5),
+        getWorkshopPlanInfo(),
     ])
+
+    const plan = planResult.ok ? planResult.data : null
 
     // Mock values
     const stats = [
@@ -90,7 +98,36 @@ export default async function AdminDashboardPage() {
                         </span>
                         <span className="text-xs font-semibold text-zinc-300">Taller Online</span>
                     </div>
-                    <span className="text-xs text-zinc-500 px-2 font-medium">V. Pro Activa</span>
+                    {plan ? (
+                        <div className="flex items-center gap-1.5 px-2">
+                            {plan.plan_status === 'trial' && (
+                                <>
+                                    <Zap className="w-3 h-3 text-orange-400" />
+                                    <span className="text-xs font-semibold text-orange-400">
+                                        {plan.daysLeftTrial !== null && plan.daysLeftTrial > 0
+                                            ? `Prueba · ${plan.daysLeftTrial}d`
+                                            : 'Prueba'}
+                                    </span>
+                                </>
+                            )}
+                            {plan.plan_status === 'active' && (
+                                <>
+                                    <ShieldCheck className="w-3 h-3 text-emerald-400" />
+                                    <span className="text-xs font-semibold text-emerald-400">
+                                        {plan.plan_name ?? 'Plan Activo'}
+                                    </span>
+                                </>
+                            )}
+                            {plan.plan_status === 'inactive' && (
+                                <>
+                                    <Clock className="w-3 h-3 text-zinc-500" />
+                                    <span className="text-xs font-semibold text-zinc-500">Inactivo</span>
+                                </>
+                            )}
+                        </div>
+                    ) : (
+                        <span className="text-xs text-zinc-500 px-2 font-medium">—</span>
+                    )}
                 </div>
             </div>
 

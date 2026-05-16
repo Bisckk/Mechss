@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import AdminShell from '@/components/admin/layout/AdminShell'
+import { getWorkshopPlanInfo } from '@/lib/actions/subscription'
 
 export default async function AdminLayout({
     children,
@@ -10,9 +11,7 @@ export default async function AdminLayout({
     const supabase = await createClient()
 
     const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-        redirect('/login')
-    }
+    if (authError || !user) redirect('/login')
 
     const { data: profile, error: profileError } = await supabase
         .from('users')
@@ -20,25 +19,23 @@ export default async function AdminLayout({
         .eq('id', user.id)
         .single()
 
-    const profileAny = profile as any;
+    const profileAny = profile as any
 
-    if (profileError || !profile) {
-        redirect('/login')
-    }
+    if (profileError || !profile) redirect('/login')
 
-    // Allow admin mechanics and receptionists to access the dashboard if they have a proper workshop_id
     const allowedRoles = ['admin', 'mechanic', 'receptionist']
+    if (!allowedRoles.includes(profileAny.role)) redirect('/login')
 
-    if (!allowedRoles.includes(profileAny.role)) {
-        redirect('/login')
-    }
-
-    // The admin MUST belong to a workshop
-    if (!profileAny.workshop_id) {
-        // If they don't have a workshop, they might not be fully configured
-        // For now we could redirect them to a specific error or setup page.
-        // Given the specifications, we just assume they have a workshop.
-        // We could return an error UI, but for now we'll just allow it and the queries will return 0 results
+    // ── Subscription check (skip for non-admins: mechanics/receptionists can't fix it) ──
+    let planInfo = null
+    if (profileAny.role === 'admin' && profileAny.workshop_id) {
+        const planResult = await getWorkshopPlanInfo()
+        if (planResult.ok) {
+            planInfo = planResult.data
+            if (planInfo.isBlocked) {
+                redirect('/suscripcion-vencida')
+            }
+        }
     }
 
     const workshopName = profileAny.workshops?.name ?? null
@@ -52,6 +49,7 @@ export default async function AdminLayout({
                 role: profileAny.role,
                 workshop_name: workshopName,
             }}
+            planInfo={planInfo}
         >
             {children}
         </AdminShell>

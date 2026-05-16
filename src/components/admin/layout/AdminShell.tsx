@@ -3,14 +3,19 @@
 import { useState } from 'react'
 import Sidebar, { type SidebarUser } from './Sidebar'
 import TopBar from './TopBar'
+import PlanStatusBanner from './PlanStatusBanner'
+import type { PlanInfo } from '@/lib/actions/subscription'
 
 interface Props {
     user: SidebarUser
     children: React.ReactNode
+    planInfo?: PlanInfo | null
 }
 
-export default function AdminShell({ user, children }: Props) {
+export default function AdminShell({ user, children, planInfo }: Props) {
     const [mobileOpen, setMobileOpen] = useState(false)
+
+    const showBanner = planInfo && (planInfo.showTrialBanner || planInfo.showExpiryBanner)
 
     return (
         <div className="flex h-screen overflow-hidden bg-zinc-950">
@@ -27,6 +32,9 @@ export default function AdminShell({ user, children }: Props) {
                     role={user.role}
                     workshopName={user.workshop_name}
                 />
+
+                {/* Plan status banner — sits between topbar and content */}
+                {showBanner && <PlanStatusBanner plan={planInfo!} />}
 
                 {/* Main content background elements */}
                 <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
