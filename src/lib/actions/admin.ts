@@ -5,6 +5,7 @@ import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { insertNotificationAction } from '@/lib/actions/notifications'
 import { sendEmail, buildRepairReceivedEmail, buildRepairCompletedEmail } from '@/lib/email'
 import { notifyRepairReceivedAction, notifyRepairCompletedAction } from '@/lib/actions/whatsapp'
+import { sendPushToWorkshopAction } from '@/lib/actions/push'
 
 // ── Types ──────────────────────────────────────────────────
 
@@ -451,6 +452,13 @@ export async function createServiceOrderAction(
                 html:    buildRepairReceivedEmail(client.full_name, vehicleDesc, trackingCode, workshopName, trackingUrl),
             })
         }
+
+        void sendPushToWorkshopAction(workshopId, {
+            title: 'Nueva orden de servicio',
+            body:  vehicleDesc,
+            url:   '/admin/taller',
+            tag:   'new-repair',
+        })
 
         revalidatePath('/admin/taller')
         return {
@@ -1123,6 +1131,13 @@ export async function aprobarCompletarAction(repairId: string): Promise<ActionRe
                 html:    buildRepairCompletedEmail(clientName, vehicleDesc, trackingCode, workshopName, totalAmount, trackingUrl),
             })
         }
+
+        void sendPushToWorkshopAction(workshopId, {
+            title: 'Servicio completado',
+            body:  `${vehicleDesc} listo para entrega`,
+            url:   '/admin/taller',
+            tag:   'repair-complete',
+        })
 
         revalidatePath('/admin/taller')
         return { ok: true, data: null }

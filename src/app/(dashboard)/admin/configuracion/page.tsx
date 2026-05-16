@@ -3,6 +3,7 @@ import DashboardAnimator from '@/components/ui/DashboardAnimator'
 import { getWhatsAppConfigAction } from '@/lib/actions/whatsapp'
 import WhatsAppConfigClient from './WhatsAppConfigClient'
 import TwoFactorClient from '@/components/admin/configuracion/TwoFactorClient'
+import PushNotificationClient from '@/components/admin/configuracion/PushNotificationClient'
 
 export const metadata = {
     title: 'Configuración | MotoFix Admin',
@@ -89,6 +90,10 @@ export default async function AdminConfiguracionPage() {
                         <div className="h-px bg-white/5" />
 
                         <TwoFactorClient />
+
+                        <div className="h-px bg-white/5" />
+
+                        <PushNotificationClient />
                     </div>
                 </section>
 

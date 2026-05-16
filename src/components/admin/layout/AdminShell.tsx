@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Sidebar, { type SidebarUser } from './Sidebar'
 import TopBar from './TopBar'
 import PlanStatusBanner from './PlanStatusBanner'
+import InstallPrompt from '@/components/pwa/InstallPrompt'
 import type { PlanInfo } from '@/lib/actions/subscription'
 
 interface Props {
@@ -49,6 +50,8 @@ export default function AdminShell({ user, children, planInfo }: Props) {
                     </div>
                 </main>
             </div>
+
+            <InstallPrompt />
         </div>
     )
 }
