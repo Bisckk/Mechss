@@ -8,7 +8,7 @@ import {
 import {
     TrendingUp, TrendingDown, DollarSign, Clock, Plus,
     ArrowUpCircle, ArrowDownCircle, X, CheckCircle2,
-    AlertCircle, Loader2, ReceiptText, Wallet,
+    AlertCircle, Loader2, ReceiptText, Wallet, FileDown,
 } from 'lucide-react'
 import MetricCard from '@/components/ui/MetricCard'
 import CardV2 from '@/components/ui/CardV2'
@@ -341,6 +341,57 @@ export default function ContabilidadClient({ resumen, flujo, mix, cartera, trans
     const tendenciaUtilidad = resumen.utilidad_mes > 0 ? 'positivo'
         : resumen.utilidad_mes < 0 ? 'negativo' : 'neutro'
 
+    const exportarPDF = () => {
+        const mesLabel = opcionesMeses.find(o => o.valor === filtroMes)?.etiqueta ?? filtroMes
+        const rows = transacciones.map(tx => `
+            <tr>
+                <td>${formatFecha(tx.fecha)}</td>
+                <td style="color:${tx.tipo === 'income' ? '#22c55e' : '#f87171'}">${tx.tipo === 'income' ? 'Ingreso' : 'Egreso'}</td>
+                <td>${tx.categoria}</td>
+                <td>${tx.descripcion}</td>
+                <td style="text-align:right;font-weight:700;color:${tx.tipo === 'income' ? '#22c55e' : '#f87171'}">${tx.tipo === 'income' ? '+' : '-'}${formatCompleto(tx.monto)}</td>
+                <td>${tx.metodo_pago ?? '—'}</td>
+            </tr>`).join('')
+
+        const html = `<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8"><title>Reporte Contabilidad — ${mesLabel}</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:system-ui,sans-serif;color:#18181b;background:#fff;padding:32px}
+  h1{font-size:22px;font-weight:900;color:#09090b;margin-bottom:4px}
+  .sub{font-size:13px;color:#71717a;margin-bottom:24px}
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px}
+  .kpi{border:1px solid #e4e4e7;border-radius:12px;padding:16px}
+  .kpi-label{font-size:11px;color:#a1a1aa;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+  .kpi-value{font-size:20px;font-weight:900;color:#09090b}
+  .kpi-sub{font-size:11px;color:#71717a;margin-top:2px}
+  table{width:100%;border-collapse:collapse;font-size:12px}
+  th{background:#f4f4f5;padding:10px 12px;text-align:left;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#71717a;border-bottom:2px solid #e4e4e7}
+  td{padding:9px 12px;border-bottom:1px solid #f4f4f5;color:#3f3f46;vertical-align:middle}
+  tr:last-child td{border-bottom:none}
+  .footer{margin-top:24px;font-size:11px;color:#a1a1aa;text-align:right}
+  @media print{body{padding:16px}}
+</style></head><body>
+  <h1>Reporte de Contabilidad</h1>
+  <div class="sub">Período: <strong>${mesLabel}</strong> · Generado: ${new Date().toLocaleDateString('es-CO', { day:'2-digit', month:'long', year:'numeric' })}</div>
+  <div class="kpis">
+    <div class="kpi"><div class="kpi-label">Ingresos del mes</div><div class="kpi-value" style="color:#22c55e">${formatCompleto(resumen.ingresos_mes)}</div></div>
+    <div class="kpi"><div class="kpi-label">Egresos del mes</div><div class="kpi-value" style="color:#f87171">${formatCompleto(resumen.egresos_mes)}</div></div>
+    <div class="kpi"><div class="kpi-label">Utilidad neta</div><div class="kpi-value" style="color:${resumen.utilidad_mes >= 0 ? '#22c55e' : '#f87171'}">${formatCompleto(resumen.utilidad_mes)}</div></div>
+    <div class="kpi"><div class="kpi-label">Cartera pendiente</div><div class="kpi-value" style="color:#f97316">${formatCompleto(resumen.cartera_pendiente)}</div></div>
+  </div>
+  <table>
+    <thead><tr><th>Fecha</th><th>Tipo</th><th>Categoría</th><th>Descripción</th><th style="text-align:right">Monto</th><th>Método</th></tr></thead>
+    <tbody>${rows || '<tr><td colspan="6" style="text-align:center;color:#a1a1aa;padding:24px">Sin transacciones en este período</td></tr>'}</tbody>
+  </table>
+  <div class="footer">MotoFix Platform · Reporte generado automáticamente</div>
+  <script>window.onload=()=>{window.print()}<\/script>
+</body></html>`
+
+        const w = window.open('', '_blank', 'width=900,height=700')
+        if (w) { w.document.write(html); w.document.close() }
+    }
+
     return (
         <div className="space-y-6 pb-10">
 
@@ -350,13 +401,22 @@ export default function ContabilidadClient({ resumen, flujo, mix, cartera, trans
                     <h1 className="text-2xl font-bold text-white tracking-tight">Contabilidad</h1>
                     <p className="text-zinc-400 text-sm mt-1">Flujo de caja y gestión financiera del taller.</p>
                 </div>
-                <button
-                    onClick={() => setMostrarDrawer(true)}
-                    className="flex items-center gap-2 px-4 py-2.5 bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold rounded-xl transition-colors shadow-lg shadow-orange-500/20"
-                >
-                    <Plus className="w-4 h-4" />
-                    Nueva transacción
-                </button>
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={exportarPDF}
+                        className="flex items-center gap-2 px-4 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white text-sm font-semibold rounded-xl transition-colors border border-white/10"
+                    >
+                        <FileDown className="w-4 h-4" />
+                        <span className="hidden sm:inline">Exportar PDF</span>
+                    </button>
+                    <button
+                        onClick={() => setMostrarDrawer(true)}
+                        className="flex items-center gap-2 px-4 py-2.5 bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold rounded-xl transition-colors shadow-lg shadow-orange-500/20"
+                    >
+                        <Plus className="w-4 h-4" />
+                        Nueva transacción
+                    </button>
+                </div>
             </div>
 
             {/* ── KPIs ──────────────────────────────────────── */}

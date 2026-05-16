@@ -16,6 +16,7 @@ export type SidebarUser = {
     avatar_url: string | null
     role: string
     workshop_name: string | null
+    lowStockCount?: number
 }
 
 interface Props {
@@ -158,6 +159,9 @@ export default function Sidebar({ mobileOpen, onMobileClose, user }: Props) {
                         <ul className="space-y-1">
                             {group.items.map(({ href, label, Icon }) => {
                                 const active = isActive(href)
+                                const badge = href === '/admin/inventario' && (user.lowStockCount ?? 0) > 0
+                                    ? user.lowStockCount!
+                                    : null
                                 return (
                                     <li key={href} className="admin-nav-item">
                                         <Link
@@ -175,7 +179,12 @@ export default function Sidebar({ mobileOpen, onMobileClose, user }: Props) {
                                                 <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-orange-500 rounded-r-full" />
                                             )}
                                             <Icon className={`flex-shrink-0 transition-transform duration-300 ${active ? 'text-orange-400' : 'text-zinc-500 group-hover:scale-110'} w-[18px] h-[18px]`} />
-                                            <span className="truncate">{label}</span>
+                                            <span className="truncate flex-1">{label}</span>
+                                            {badge && (
+                                                <span className="ml-auto flex-shrink-0 min-w-[18px] h-[18px] px-1 bg-orange-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center leading-none">
+                                                    {badge > 99 ? '99+' : badge}
+                                                </span>
+                                            )}
                                         </Link>
                                     </li>
                                 )

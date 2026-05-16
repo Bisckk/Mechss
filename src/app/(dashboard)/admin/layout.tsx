@@ -38,6 +38,19 @@ export default async function AdminLayout({
         }
     }
 
+    // ── Low-stock badge count ──
+    let lowStockCount = 0
+    if (profileAny.workshop_id && (profileAny.role === 'admin' || profileAny.role === 'receptionist')) {
+        const { data: invItems } = await supabase
+            .from('inventory_items')
+            .select('stock_quantity, min_stock')
+            .eq('workshop_id', profileAny.workshop_id)
+
+        lowStockCount = (invItems ?? []).filter(
+            (i: any) => Number(i.stock_quantity) <= Number(i.min_stock)
+        ).length
+    }
+
     const workshopName = profileAny.workshops?.name ?? null
 
     return (
@@ -48,6 +61,7 @@ export default async function AdminLayout({
                 avatar_url: profileAny.avatar_url,
                 role: profileAny.role,
                 workshop_name: workshopName,
+                lowStockCount,
             }}
             planInfo={planInfo}
         >

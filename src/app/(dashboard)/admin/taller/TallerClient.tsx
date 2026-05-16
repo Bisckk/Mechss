@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import {
     Wrench, Package, CheckCircle, Clock, AlertTriangle,
     Search, RefreshCw, ChevronRight, User, Hash, FileText, Plus, UserCog,
@@ -90,6 +90,8 @@ export default function TallerClient({ userRole, userId, workshopId }: Props) {
     const [aprobandoId, setAprobandoId] = useState<string | null>(null)
     const [isLive, setIsLive] = useState(false)
     const [toasts, setToasts] = useState<ToastItem[]>([])
+    const [filterMechanic, setFilterMechanic] = useState('')
+    const [filterPayment, setFilterPayment] = useState('')
 
     const listRef       = useRef<HTMLDivElement>(null)
     const hasLoadedRef  = useRef(false)
@@ -195,17 +197,29 @@ export default function TallerClient({ userRole, userId, workshopId }: Props) {
         if (!res.ok) setRepairs(prev => prev.map(r => r.id === repairId ? { ...r, status: repair.status } : r))
     }
 
+    const mechanics = useMemo(() => {
+        const seen = new Set<string>()
+        return repairs
+            .filter(r => r.mechanic !== null)
+            .filter(r => { if (seen.has(r.mechanic!.id)) return false; seen.add(r.mechanic!.id); return true })
+            .map(r => ({ id: r.mechanic!.id, name: r.mechanic!.full_name }))
+    }, [repairs])
+
     const filteredRepairs = repairs.filter(r => {
-        if (!searchQuery) return true
-        const q = searchQuery.toLowerCase()
-        return (
-            r.tracking_code.toLowerCase().includes(q) ||
-            r.vehicle_plate?.toLowerCase().includes(q) ||
-            r.vehicle_brand?.toLowerCase().includes(q) ||
-            r.vehicle_model?.toLowerCase().includes(q) ||
-            r.clients?.full_name.toLowerCase().includes(q) ||
-            r.reported_issue.toLowerCase().includes(q)
-        )
+        if (searchQuery) {
+            const q = searchQuery.toLowerCase()
+            const matchSearch =
+                r.tracking_code.toLowerCase().includes(q) ||
+                r.vehicle_plate?.toLowerCase().includes(q) ||
+                r.vehicle_brand?.toLowerCase().includes(q) ||
+                r.vehicle_model?.toLowerCase().includes(q) ||
+                r.clients?.full_name.toLowerCase().includes(q) ||
+                r.reported_issue.toLowerCase().includes(q)
+            if (!matchSearch) return false
+        }
+        if (filterMechanic && r.mechanic_id !== filterMechanic) return false
+        if (filterPayment && r.payment_status !== filterPayment) return false
+        return true
     })
 
     const activeRepairs    = filteredRepairs.filter(r => r.status === activeTab)
@@ -311,6 +325,43 @@ export default function TallerClient({ userRole, userId, workshopId }: Props) {
                     )}
                 </div>
             </div>
+
+            {/* Filter bar */}
+            {canManage(userRole) && (
+                <div className="flex flex-wrap items-center gap-2">
+                    <SlidersHorizontal className="w-3.5 h-3.5 text-zinc-500 flex-shrink-0" />
+                    <select
+                        value={filterPayment}
+                        onChange={e => setFilterPayment(e.target.value)}
+                        className="bg-zinc-900 border border-white/10 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-orange-500/50 transition-all cursor-pointer"
+                    >
+                        <option value="">Todos los pagos</option>
+                        <option value="pending">Pendiente</option>
+                        <option value="partial">Parcial</option>
+                        <option value="paid">Pagado</option>
+                    </select>
+                    {mechanics.length > 0 && (
+                        <select
+                            value={filterMechanic}
+                            onChange={e => setFilterMechanic(e.target.value)}
+                            className="bg-zinc-900 border border-white/10 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-orange-500/50 transition-all cursor-pointer"
+                        >
+                            <option value="">Todos los mecánicos</option>
+                            {mechanics.map(m => (
+                                <option key={m.id} value={m.id}>{m.name}</option>
+                            ))}
+                        </select>
+                    )}
+                    {(filterMechanic || filterPayment) && (
+                        <button
+                            onClick={() => { setFilterMechanic(''); setFilterPayment('') }}
+                            className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-white bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-xl transition-all border border-white/5"
+                        >
+                            <X className="w-3 h-3" /> Limpiar filtros
+                        </button>
+                    )}
+                </div>
+            )}
 
             {/* Banners */}
             {loadError && (

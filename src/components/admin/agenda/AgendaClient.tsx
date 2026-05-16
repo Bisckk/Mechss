@@ -1,8 +1,9 @@
 'use client'
 
 import { useState, useMemo, useEffect, useTransition, useRef } from 'react'
-import { Plus, Calendar as CalendarIcon, ListTodo, ChevronLeft, ChevronRight, Clock, User, Car, FileText, CheckCircle2, X } from 'lucide-react'
+import { Plus, Calendar as CalendarIcon, ListTodo, ChevronLeft, ChevronRight, Clock, User, Car, FileText, CheckCircle2, X, Wrench } from 'lucide-react'
 import { gsap } from 'gsap'
+import { useRouter } from 'next/navigation'
 import AppointmentFormDrawer from './AppointmentFormDrawer'
 import { updateAppointmentStatusAction, updateAppointmentAction } from '@/lib/actions/admin'
 
@@ -21,8 +22,9 @@ interface AgendaClientProps {
 }
 
 export default function AgendaClient({ initialAppointments = [] }: AgendaClientProps) {
+    const router = useRouter()
     const [currentDate, setCurrentDate] = useState(new Date())
-    const [viewMode, setViewMode] = useState<'month' | 'daily'>('daily')
+    const [viewMode, setViewMode] = useState<'month' | 'week' | 'daily'>('daily')
     const [isDrawerOpen, setIsDrawerOpen] = useState(false)
 
     const [appointments, setAppointments] = useState<Appointment[]>([])
@@ -100,19 +102,36 @@ export default function AgendaClient({ initialAppointments = [] }: AgendaClientP
 
     // ── View Transitions ────────────────────────────────────────────
     const nextPeriod = () => {
+        const d = new Date(currentDate)
         if (viewMode === 'month') {
-            setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1))
+            setCurrentDate(new Date(d.getFullYear(), d.getMonth() + 1, 1))
+        } else if (viewMode === 'week') {
+            d.setDate(d.getDate() + 7); setCurrentDate(d)
         } else {
-            setCurrentDate(new Date(currentDate.setDate(currentDate.getDate() + 1)))
+            d.setDate(d.getDate() + 1); setCurrentDate(d)
         }
     }
 
     const prevPeriod = () => {
+        const d = new Date(currentDate)
         if (viewMode === 'month') {
-            setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1))
+            setCurrentDate(new Date(d.getFullYear(), d.getMonth() - 1, 1))
+        } else if (viewMode === 'week') {
+            d.setDate(d.getDate() - 7); setCurrentDate(d)
         } else {
-            setCurrentDate(new Date(currentDate.setDate(currentDate.getDate() - 1)))
+            d.setDate(d.getDate() - 1); setCurrentDate(d)
         }
+    }
+
+    const getWeekDays = (base: Date) => {
+        const dow = base.getDay()
+        const diff = dow === 0 ? -6 : 1 - dow
+        const monday = new Date(base)
+        monday.setDate(base.getDate() + diff)
+        monday.setHours(0, 0, 0, 0)
+        return Array.from({ length: 7 }, (_, i) => {
+            const d = new Date(monday); d.setDate(monday.getDate() + i); return d
+        })
     }
 
     const handleDayClick = (day: number) => {
@@ -216,6 +235,81 @@ export default function AgendaClient({ initialAppointments = [] }: AgendaClientP
         </div>
     )
 
+    const renderWeekView = () => {
+        const weekDays = getWeekDays(currentDate)
+        const HOURS = Array.from({ length: 12 }, (_, i) => i + 8)
+        const today = new Date().toDateString()
+
+        const appsOnDay = (day: Date) => appointments.filter(a =>
+            a.date.getFullYear() === day.getFullYear() &&
+            a.date.getMonth() === day.getMonth() &&
+            a.date.getDate() === day.getDate()
+        )
+
+        return (
+            <div className="bg-zinc-900/40 border border-white/5 rounded-xl overflow-hidden shadow-2xl">
+                {/* Day headers */}
+                <div className="grid border-b border-white/10 bg-zinc-950/80" style={{ gridTemplateColumns: '56px repeat(7, 1fr)' }}>
+                    <div />
+                    {weekDays.map((day, i) => {
+                        const isToday = day.toDateString() === today
+                        const dayAppts = appsOnDay(day)
+                        return (
+                            <button
+                                key={i}
+                                onClick={() => { setCurrentDate(new Date(day)); setViewMode('daily') }}
+                                className="py-3 px-1 text-center hover:bg-white/5 transition-colors group border-l border-white/5"
+                            >
+                                <div className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 group-hover:text-zinc-300">
+                                    {new Intl.DateTimeFormat('es-CO', { weekday: 'short' }).format(day)}
+                                </div>
+                                <div className={`mx-auto mt-1 w-7 h-7 rounded-full flex items-center justify-center text-sm font-black transition-all
+                                    ${isToday ? 'bg-orange-500 text-white shadow-[0_0_12px_rgba(249,115,22,0.4)]' : 'text-zinc-300 group-hover:bg-white/10'}`}>
+                                    {day.getDate()}
+                                </div>
+                                {dayAppts.length > 0 && (
+                                    <div className="mt-1.5 flex justify-center gap-0.5">
+                                        {dayAppts.slice(0, 4).map((_, j) => (
+                                            <div key={j} className="w-1 h-1 rounded-full bg-orange-400 opacity-80" />
+                                        ))}
+                                    </div>
+                                )}
+                            </button>
+                        )
+                    })}
+                </div>
+
+                {/* Time grid */}
+                <div className="overflow-y-auto scrollbar-none" style={{ maxHeight: '560px' }}>
+                    {HOURS.map(hour => (
+                        <div key={hour} className="grid border-b border-white/[0.04] min-h-[72px]" style={{ gridTemplateColumns: '56px repeat(7, 1fr)' }}>
+                            <div className="py-2 pr-3 text-right shrink-0">
+                                <span className="text-[10px] font-bold text-zinc-600">{String(hour).padStart(2, '0')}:00</span>
+                            </div>
+                            {weekDays.map((day, di) => {
+                                const appsHour = appsOnDay(day).filter(a => a.date.getHours() === hour)
+                                return (
+                                    <div key={di} className="border-l border-white/[0.04] p-1 space-y-1">
+                                        {appsHour.map(app => (
+                                            <div
+                                                key={app.id}
+                                                onClick={() => { setCurrentDate(new Date(day)); setViewMode('daily') }}
+                                                className="rounded-lg px-1.5 py-1 text-[10px] font-semibold bg-orange-500/10 border border-orange-500/20 text-orange-300 truncate cursor-pointer hover:bg-orange-500/20 transition-colors"
+                                                title={`${app.clientName} — ${app.vehicle}`}
+                                            >
+                                                <span className="opacity-60">{String(app.date.getMinutes()).padStart(2, '0')}'</span> {app.clientName}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )
+                            })}
+                        </div>
+                    ))}
+                </div>
+            </div>
+        )
+    }
+
     const renderDailyView = () => {
         // Show one day timeline
         const todayAppointments = appointments.filter(a =>
@@ -295,6 +389,14 @@ export default function AgendaClient({ initialAppointments = [] }: AgendaClientP
                                                 </div>
 
                                                 <div className="flex gap-2 justify-start md:flex-col md:opacity-0 md:-translate-x-2 md:group-hover/card:opacity-100 md:group-hover/card:translate-x-0 transition-all duration-300">
+                                                    {app.status === 'confirmed' && (
+                                                        <button
+                                                            onClick={() => router.push('/admin/taller')}
+                                                            className="flex items-center gap-1.5 text-xs text-emerald-400 hover:text-white bg-emerald-500/10 hover:bg-emerald-500 px-3 py-1.5 rounded-lg border border-emerald-500/20 hover:border-transparent font-bold text-center shadow-sm transition-colors"
+                                                        >
+                                                            <Wrench className="w-3 h-3" /> Crear Orden
+                                                        </button>
+                                                    )}
                                                     <button
                                                         onClick={() => {
                                                             setEditForm({ date: app.date, time: `${String(app.date.getHours()).padStart(2, '0')}:${String(app.date.getMinutes()).padStart(2, '0')}`, title: app.reason })
@@ -351,7 +453,13 @@ export default function AgendaClient({ initialAppointments = [] }: AgendaClientP
                         <span className="text-lg font-semibold text-white min-w-[150px] text-center capitalize">
                             {viewMode === 'month'
                                 ? `${monthName} ${year}`
-                                : new Intl.DateTimeFormat('es-CO', { day: 'numeric', month: 'long' }).format(currentDate)
+                                : viewMode === 'week'
+                                    ? (() => {
+                                        const days = getWeekDays(currentDate)
+                                        const s = days[0], e = days[6]
+                                        return `${s.getDate()} – ${e.getDate()} ${new Intl.DateTimeFormat('es-CO', { month: 'short' }).format(e)}`
+                                    })()
+                                    : new Intl.DateTimeFormat('es-CO', { day: 'numeric', month: 'long' }).format(currentDate)
                             }
                         </span>
                         <button onClick={nextPeriod} className="p-2 hover:bg-white/5 rounded-lg text-zinc-400 hover:text-white transition">
@@ -368,6 +476,12 @@ export default function AgendaClient({ initialAppointments = [] }: AgendaClientP
                             <ListTodo className="w-4 h-4" /> Diaria
                         </button>
                         <button
+                            onClick={() => setViewMode('week')}
+                            className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 py-1.5 text-sm font-medium rounded-md transition ${viewMode === 'week' ? 'text-white bg-white/10 shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}
+                        >
+                            <ChevronRight className="w-4 h-4" /> Semana
+                        </button>
+                        <button
                             onClick={() => setViewMode('month')}
                             className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 py-1.5 text-sm font-medium rounded-md transition ${viewMode === 'month' ? 'text-white bg-white/10 shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}
                         >
@@ -377,7 +491,7 @@ export default function AgendaClient({ initialAppointments = [] }: AgendaClientP
                 </div>
 
                 {/* Dynamic View rendering */}
-                {viewMode === 'month' ? renderMonthView() : renderDailyView()}
+                {viewMode === 'month' ? renderMonthView() : viewMode === 'week' ? renderWeekView() : renderDailyView()}
 
             </div>
 
