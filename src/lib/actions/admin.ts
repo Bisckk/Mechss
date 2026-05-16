@@ -3,6 +3,8 @@
 import { revalidatePath } from 'next/cache'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { insertNotificationAction } from '@/lib/actions/notifications'
+import { sendEmail, buildRepairReceivedEmail, buildRepairCompletedEmail } from '@/lib/email'
+import { notifyRepairReceivedAction, notifyRepairCompletedAction } from '@/lib/actions/whatsapp'
 
 // ── Types ──────────────────────────────────────────────────
 
@@ -423,6 +425,32 @@ export async function createServiceOrderAction(
                 client_id:      fd.client_id,
             },
         })
+
+        // ── Notificaciones al cliente (fire-and-forget) ──────────
+        const repairId      = (data as any).id as string
+        const trackingCode  = (data as any).tracking_code as string
+        const vehicleDesc   = [fd.vehicle_brand, fd.vehicle_model, fd.vehicle_plate].filter(Boolean).join(' ') || 'Vehículo'
+        const workshopSlug  = (workshop as any)?.slug ?? ''
+        const workshopName  = (workshop as any)?.name ?? 'el taller'
+        const trackingUrl   = `${process.env.NEXT_PUBLIC_APP_URL}/t/${workshopSlug}/rastreo?code=${trackingCode}`
+
+        const { data: clientData } = await adminClient
+            .from('clients')
+            .select('full_name, phone, email')
+            .eq('id', fd.client_id)
+            .single()
+        const client = clientData as any
+
+        if (client?.phone) {
+            void notifyRepairReceivedAction({ workshopId, repairId, phone: client.phone, trackingCode, vehicleDesc })
+        }
+        if (client?.email) {
+            void sendEmail({
+                to:      client.email,
+                subject: `Tu vehículo ingresó al taller · #${trackingCode}`,
+                html:    buildRepairReceivedEmail(client.full_name, vehicleDesc, trackingCode, workshopName, trackingUrl),
+            })
+        }
 
         revalidatePath('/admin/taller')
         return {
@@ -1061,6 +1089,40 @@ export async function aprobarCompletarAction(repairId: string): Promise<ActionRe
             parts: [],
             is_client_visible: true,
         } as any)
+
+        // ── Notificaciones al cliente (fire-and-forget) ──────────
+        const { data: repairFull } = await admin
+            .from('repairs')
+            .select(`
+                tracking_code, vehicle_brand, vehicle_model, vehicle_plate,
+                final_cost, estimated_cost,
+                clients:client_id(full_name, phone, email),
+                workshops:workshop_id(name, slug)
+            `)
+            .eq('id', repairId)
+            .single()
+
+        const rf           = repairFull as any
+        const trackingCode = rf?.tracking_code as string
+        const vehicleDesc  = [rf?.vehicle_brand, rf?.vehicle_model, rf?.vehicle_plate].filter(Boolean).join(' ') || 'Vehículo'
+        const workshopName = rf?.workshops?.name ?? 'el taller'
+        const workshopSlug = rf?.workshops?.slug ?? ''
+        const totalAmount  = rf?.final_cost || rf?.estimated_cost || null
+        const trackingUrl  = `${process.env.NEXT_PUBLIC_APP_URL}/t/${workshopSlug}/rastreo?code=${trackingCode}`
+        const clientPhone  = rf?.clients?.phone as string | null
+        const clientEmail  = rf?.clients?.email as string | null
+        const clientName   = rf?.clients?.full_name as string
+
+        if (clientPhone) {
+            void notifyRepairCompletedAction({ workshopId, repairId, phone: clientPhone, vehicleDesc, trackingCode })
+        }
+        if (clientEmail) {
+            void sendEmail({
+                to:      clientEmail,
+                subject: `¡Tu vehículo está listo! · #${trackingCode}`,
+                html:    buildRepairCompletedEmail(clientName, vehicleDesc, trackingCode, workshopName, totalAmount, trackingUrl),
+            })
+        }
 
         revalidatePath('/admin/taller')
         return { ok: true, data: null }

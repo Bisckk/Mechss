@@ -202,11 +202,56 @@ export async function notifyRepairCompletedAction(params: {
     })
 }
 
+export async function notifyRepairDeliveredAction(params: {
+    workshopId: string
+    repairId: string
+    phone: string
+    vehicleDesc: string
+    trackingCode: string
+}): Promise<void> {
+    const cfg = await getWhatsAppConfigForWorkshop(params.workshopId)
+    if (!cfg?.enabled || !cfg?.send_on_delivered) return
+
+    await sendWhatsAppMessageAction({
+        workshopId: params.workshopId,
+        repairId: params.repairId,
+        phone: params.phone,
+        template: 'orden_completada',
+        variables: [params.vehicleDesc, params.trackingCode],
+    })
+}
+
+export async function notifyAppointmentReminderAction(params: {
+    workshopId: string
+    phone: string
+    clientName: string
+    vehicleDesc: string
+    scheduledAt: string
+}): Promise<void> {
+    const cfg = await getWhatsAppConfigForWorkshop(params.workshopId)
+    if (!cfg?.enabled || !cfg?.send_appointment_reminder) return
+
+    const dateStr = new Date(params.scheduledAt).toLocaleDateString('es-CO', {
+        weekday: 'long', day: 'numeric', month: 'long',
+    })
+    const timeStr = new Date(params.scheduledAt).toLocaleTimeString('es-CO', {
+        hour: '2-digit', minute: '2-digit',
+    })
+
+    await sendWhatsAppMessageAction({
+        workshopId: params.workshopId,
+        repairId: null,
+        phone: params.phone,
+        template: 'recordatorio_cita',
+        variables: [params.clientName, params.vehicleDesc, dateStr, timeStr],
+    })
+}
+
 async function getWhatsAppConfigForWorkshop(workshopId: string) {
     const admin = createAdminClient()
     const { data } = await admin
         .from('whatsapp_config')
-        .select('enabled, send_on_received, send_on_completed, send_on_delivered')
+        .select('enabled, send_on_received, send_on_completed, send_on_delivered, send_appointment_reminder')
         .eq('workshop_id', workshopId)
         .maybeSingle()
     return data as any
