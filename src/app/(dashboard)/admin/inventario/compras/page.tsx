@@ -1,5 +1,5 @@
 import { getPurchaseOrdersAction, getSuppliersAction } from '@/lib/actions/inventario_v2'
-import { getInventoryItemsAction } from '@/lib/actions/inventory'
+import { getInventoryItemsAction } from '@/lib/actions/inventario_v2'
 import ComprasClient from './ComprasClient'
 
 export default async function ComprasPage() {

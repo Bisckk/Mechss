@@ -7,6 +7,7 @@ import {
     AlertCircle, Clock, Plus, Printer, Share2, Eye, User
 } from 'lucide-react'
 import { getVehicleRepairsAction } from '@/lib/actions/admin'
+import { printVehicleHistoryReport } from '@/lib/utils/reportes'
 import CreateServiceOrderModal from './CreateServiceOrderModal'
 import RepairDetailDrawer from '@/components/admin/taller/RepairDetailDrawer'
 
@@ -80,7 +81,10 @@ export default function VehicleHistoryModal({ isOpen, onClose, vehicle, clientId
         setIsLoading(false)
     }
 
-    const handlePrintHistory = () => window.print()
+    const handlePrintHistory = () => {
+        if (!vehicle) return
+        printVehicleHistoryReport(vehicle, repairs, clientName ?? '')
+    }
 
     const handleShare = (repair: RepairLog) => {
         const url = `${window.location.origin}/rastreo`

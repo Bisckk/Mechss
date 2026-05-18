@@ -1,9 +1,10 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { X, User, Car, CalendarIcon, PenLine, Plus, Phone, Mail, FileText, Loader2, Thermometer, Zap } from 'lucide-react'
+import { X, User, Car, CalendarIcon, PenLine, Plus, Phone, Mail, FileText, Loader2, Thermometer, Zap, FileDown } from 'lucide-react'
 import { gsap } from 'gsap'
 import { getClientVehiclesAction } from '@/lib/actions/admin'
+import { printClientProfileReport } from '@/lib/utils/reportes'
 import VehicleHistoryModal from './VehicleHistoryModal'
 import AddVehicleModal from './AddVehicleModal'
 
@@ -110,12 +111,21 @@ export default function ClientDetailsDrawer({ isOpen, onClose, client }: ClientD
                             <p className="text-sm text-zinc-400 mt-1">Registrado el {new Date(client.created_at).toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}</p>
                         </div>
                     </div>
-                    <button
-                        onClick={onClose}
-                        className="p-2 text-zinc-500 hover:text-white hover:bg-white/10 rounded-xl transition-colors"
-                    >
-                        <X className="w-5 h-5" />
-                    </button>
+                    <div className="flex items-center gap-1.5">
+                        <button
+                            onClick={() => printClientProfileReport(client, vehicles)}
+                            title="Exportar PDF"
+                            className="p-2 text-zinc-500 hover:text-white hover:bg-white/10 rounded-xl transition-colors"
+                        >
+                            <FileDown className="w-5 h-5" />
+                        </button>
+                        <button
+                            onClick={onClose}
+                            className="p-2 text-zinc-500 hover:text-white hover:bg-white/10 rounded-xl transition-colors"
+                        >
+                            <X className="w-5 h-5" />
+                        </button>
+                    </div>
                 </div>
 
                 {/* Content */}

@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/server'
+import { insertNotificationAction } from '@/lib/actions/notifications'
 
 type ActionResult<T = null> = { ok: true; data: T } | { ok: false; error: string }
 
@@ -317,6 +318,94 @@ export async function updateMinStockAction(itemId: string, minStock: number): Pr
             .from('inventory_items')
             .update({ min_stock: minStock } as any)
             .eq('id', itemId)
+            .eq('workshop_id', workshopId)
+        if (error) return { ok: false, error: error.message }
+        revalidatePath('/admin/inventario')
+        return { ok: true, data: null }
+    } catch (e: any) { return { ok: false, error: e.message } }
+}
+
+// ── Inventory Items (consolidated from v1) ─────────────────
+
+export interface InventoryItem {
+    id: string
+    workshop_id: string
+    name: string
+    description: string | null
+    sku: string | null
+    category: 'Accesorios' | 'Repuestos' | 'Líquidos y Lubricantes' | 'Herramientas' | 'Otro'
+    cost_price: number
+    sale_price: number
+    stock_quantity: number
+    min_stock: number
+    is_published: boolean
+    image_url: string | null
+    created_at: string
+}
+
+export type SaveInventoryItemParams = Partial<Omit<InventoryItem, 'id' | 'workshop_id' | 'created_at'>>
+
+export async function getInventoryItemsAction(): Promise<ActionResult<InventoryItem[]>> {
+    try {
+        const { workshopId } = await getCtx()
+        const admin = createAdminClient()
+        const { data, error } = await admin
+            .from('inventory_items')
+            .select('*')
+            .eq('workshop_id', workshopId)
+            .order('created_at', { ascending: false })
+        if (error) return { ok: false, error: error.message }
+        return { ok: true, data: (data ?? []) as InventoryItem[] }
+    } catch (e: any) { return { ok: false, error: e.message } }
+}
+
+export async function createInventoryItemAction(params: SaveInventoryItemParams): Promise<ActionResult<InventoryItem>> {
+    try {
+        const { workshopId, userId } = await getCtx()
+        const admin = createAdminClient()
+        const { data, error } = await (admin.from('inventory_items') as any)
+            .insert({ ...params, workshop_id: workshopId })
+            .select()
+            .single()
+        if (error) return { ok: false, error: error.message }
+
+        void insertNotificationAction({
+            workshopId,
+            actorId:   userId,
+            actorName: null,
+            type:      'inventory_created',
+            title:     'Producto registrado en inventario',
+            body:      (params.name ?? 'Producto') + (params.category ? ` · ${params.category}` : ''),
+            metadata:  { item_id: (data as any).id, name: params.name ?? null, category: params.category ?? null, sku: params.sku ?? null },
+        })
+
+        revalidatePath('/admin/inventario')
+        return { ok: true, data: data as InventoryItem }
+    } catch (e: any) { return { ok: false, error: e.message } }
+}
+
+export async function updateInventoryItemAction(id: string, params: SaveInventoryItemParams): Promise<ActionResult> {
+    try {
+        const { workshopId } = await getCtx()
+        const admin = createAdminClient()
+        const { error } = await (admin.from('inventory_items') as any)
+            .update(params)
+            .eq('id', id)
+            .eq('workshop_id', workshopId)
+        if (error) return { ok: false, error: error.message }
+        revalidatePath('/admin/inventario')
+        return { ok: true, data: null }
+    } catch (e: any) { return { ok: false, error: e.message } }
+}
+
+export async function deleteInventoryItemAction(id: string): Promise<ActionResult> {
+    try {
+        const { workshopId } = await getCtx()
+        const admin = createAdminClient()
+        const { error } = await admin
+            .from('inventory_items')
+            .delete()
+            .eq('id', id)
             .eq('workshop_id', workshopId)
         if (error) return { ok: false, error: error.message }
         revalidatePath('/admin/inventario')

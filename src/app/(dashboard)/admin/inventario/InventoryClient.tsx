@@ -8,7 +8,7 @@ import {
 } from 'lucide-react'
 import { exportInventario } from '@/lib/utils/exportar'
 import { gsap } from 'gsap'
-import { InventoryItem, createInventoryItemAction, updateInventoryItemAction, deleteInventoryItemAction } from '@/lib/actions/inventory'
+import { InventoryItem, createInventoryItemAction, updateInventoryItemAction, deleteInventoryItemAction } from '@/lib/actions/inventario_v2'
 import ImageUploader from '@/components/ui/ImageUploader'
 
 type ViewMode = 'table' | 'grid'

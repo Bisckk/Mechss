@@ -46,7 +46,12 @@
       "Bash(npx next *)",
       "Bash(node -e \"const p=require\\('./package.json'\\); const deps={...p.dependencies,...p.devDependencies}; const pdf=Object.keys\\(deps\\).filter\\(k=>k.includes\\('pdf'\\)||k.includes\\('jspdf'\\)||k.includes\\('print'\\)\\); console.log\\('PDF libs:', pdf\\); console.log\\('recharts:', deps.recharts\\); console.log\\('xlsx:', deps.xlsx\\);\")",
       "PowerShell(grep *)",
-      "Bash(node -e \"const p=require\\('./package.json'\\); const deps={...p.dependencies,...p.devDependencies}; const sec=Object.keys\\(deps\\).filter\\(k=>k.includes\\('sentry'\\)||k.includes\\('rate'\\)||k.includes\\('upstash'\\)||k.includes\\('limiter'\\)||k.includes\\('otp'\\)||k.includes\\('totp'\\)||k.includes\\('2fa'\\)||k.includes\\('speakeasy'\\)\\); console.log\\('Security libs:', sec\\); console.log\\('middleware exists:', require\\('fs'\\).existsSync\\('./src/middleware.ts'\\)\\)\")"
+      "Bash(node -e \"const p=require\\('./package.json'\\); const deps={...p.dependencies,...p.devDependencies}; const sec=Object.keys\\(deps\\).filter\\(k=>k.includes\\('sentry'\\)||k.includes\\('rate'\\)||k.includes\\('upstash'\\)||k.includes\\('limiter'\\)||k.includes\\('otp'\\)||k.includes\\('totp'\\)||k.includes\\('2fa'\\)||k.includes\\('speakeasy'\\)\\); console.log\\('Security libs:', sec\\); console.log\\('middleware exists:', require\\('fs'\\).existsSync\\('./src/middleware.ts'\\)\\)\")",
+      "Bash(del *)",
+      "Bash(netstat -ano)",
+      "Bash(findstr \":3000\")",
+      "Bash(findstr \"LISTENING\")",
+      "PowerShell(Get-NetTCPConnection *)"
     ]
   }
 }

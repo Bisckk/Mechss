@@ -7,7 +7,7 @@ import {
     createPurchaseOrderAction, receivePurchaseOrderAction, cancelPurchaseOrderAction,
     type PurchaseOrder, type Supplier,
 } from '@/lib/actions/inventario_v2'
-import type { InventoryItem } from '@/lib/actions/inventory'
+import type { InventoryItem } from '@/lib/actions/inventario_v2'
 
 interface Props {
     initialOrders: PurchaseOrder[]

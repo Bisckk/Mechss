@@ -1,5 +1,5 @@
 import { Metadata } from 'next'
-import { getInventoryItemsAction } from '@/lib/actions/inventory'
+import { getInventoryItemsAction } from '@/lib/actions/inventario_v2'
 import InventoryClient from './InventoryClient'
 
 export const metadata: Metadata = {
