@@ -17,7 +17,7 @@ export default async function SuscripcionVencidaPage() {
         .single() as { data: any }
 
     // Superadmin never gets blocked
-    if (profile?.role === 'superadmin') redirect('/dashboard/superadmin')
+    if (profile?.role === 'superadmin') redirect('/superadmin')
 
     const ws = profile?.workshops
     const isTrial = ws?.plan_status === 'trial'

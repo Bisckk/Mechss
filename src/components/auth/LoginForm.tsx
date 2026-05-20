@@ -47,7 +47,7 @@ export default function LoginForm() {
       .eq('id', user.id)
       .single()
     const role = (profileData as { role: UserRole } | null)?.role
-    router.push(role ? getRoleDashboardPath(role) : '/dashboard')
+    router.push(role ? getRoleDashboardPath(role) : '/admin/dashboard')
     router.refresh()
   }
 

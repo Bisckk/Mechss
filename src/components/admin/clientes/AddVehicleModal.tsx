@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { X, Car, Loader2, Plus } from 'lucide-react'
 import { createVehicleAction } from '@/lib/actions/admin'
 
@@ -19,8 +20,11 @@ export default function AddVehicleModal({ isOpen, onClose, clientId, onSuccess }
     const [year, setYear] = useState('')
     const [fuelType, setFuelType] = useState<'FI' | 'Carburada' | ''>('')
     const [error, setError] = useState('')
+    const [montado, setMontado] = useState(false)
 
-    if (!isOpen) return null
+    useEffect(() => { setMontado(true) }, [])
+
+    if (!montado || !isOpen) return null
 
     const resetForm = () => {
         setPlate(''); setBrand(''); setModel(''); setYear(''); setFuelType(''); setError('')
@@ -53,8 +57,8 @@ export default function AddVehicleModal({ isOpen, onClose, clientId, onSuccess }
         }
     }
 
-    return (
-        <div className="fixed inset-x-0 bottom-0 top-16 z-[120] flex items-center justify-center p-4 sm:p-6">
+    return createPortal(
+        <div className="fixed inset-0 z-[155] flex items-center justify-center p-4 sm:p-6">
             <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={onClose} />
             <div className="relative w-full max-w-lg bg-zinc-950 border border-white/10 rounded-2xl flex flex-col shadow-[0_0_50px_rgba(0,0,0,0.5)] animate-in zoom-in-95 duration-200">
                 {/* Header */}
@@ -173,6 +177,7 @@ export default function AddVehicleModal({ isOpen, onClose, clientId, onSuccess }
                     </div>
                 </form>
             </div>
-        </div>
+        </div>,
+        document.body
     )
 }

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useTransition, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { X, User, Phone, Mail, MapPin, FileText, Loader2, Pencil } from 'lucide-react'
 import { gsap } from 'gsap'
 import { updateClientAction, type UpdateClientData } from '@/lib/actions/admin'
@@ -32,6 +33,9 @@ export default function EditClientModal({ isOpen, client, onClose, onUpdated }: 
 
     const backdropRef = useRef<HTMLDivElement>(null)
     const modalRef    = useRef<HTMLDivElement>(null)
+    const [montado, setMontado] = useState(false)
+
+    useEffect(() => { setMontado(true) }, [])
 
     // Seed form when client changes
     useEffect(() => {
@@ -104,10 +108,10 @@ export default function EditClientModal({ isOpen, client, onClose, onUpdated }: 
         })
     }
 
-    if (!isOpen || !client) return null
+    if (!montado || !isOpen || !client) return null
 
-    return (
-        <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4">
+    return createPortal(
+        <div className="fixed inset-0 z-[155] flex items-end sm:items-center justify-center p-0 sm:p-4">
             {/* Backdrop */}
             <div
                 ref={backdropRef}
@@ -268,6 +272,7 @@ export default function EditClientModal({ isOpen, client, onClose, onUpdated }: 
                     </button>
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     )
 }

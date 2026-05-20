@@ -28,23 +28,23 @@ export default function MetricCard({
     const { color, Comp: IconTendencia } = TENDENCIA_ESTILOS[tendencia]
 
     return (
-        <div className={`relative overflow-hidden bg-zinc-900 border border-white/5 rounded-2xl p-5 group hover:bg-white/[0.02] transition-colors ${className}`}>
-            {/* Glow de fondo */}
-            <div className={`absolute top-0 right-0 w-28 h-28 blur-3xl rounded-full ${bgIcono} -mr-8 -mt-8 group-hover:scale-150 transition-transform duration-700 ease-out opacity-60`} />
+        <div className={`relative overflow-hidden bg-zinc-900/50 border border-white/[0.06] rounded-2xl p-5 backdrop-blur-sm group hover:bg-zinc-900/70 transition-all duration-300 ${className}`}>
+            {/* Glow ambiental */}
+            <div className={`absolute top-0 right-0 w-24 h-24 blur-3xl rounded-full ${bgIcono} -mr-6 -mt-6 group-hover:scale-125 transition-transform duration-700 ease-out opacity-50`} />
 
-            <div className="relative z-10 flex items-start justify-between">
+            <div className="relative z-10 flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
-                    <p className="text-zinc-400 text-sm font-medium truncate">{etiqueta}</p>
-                    <p className="mt-2 text-2xl sm:text-3xl font-bold text-white tracking-tight">{valor}</p>
+                    <p className="text-[11px] font-medium tracking-wide uppercase text-zinc-500 truncate">{etiqueta}</p>
+                    <p className="mt-2.5 text-2xl sm:text-[28px] font-bold text-white tracking-tight tabular-nums">{valor}</p>
                 </div>
-                <div className={`flex-shrink-0 w-10 h-10 rounded-xl ${bgIcono} border border-white/10 flex items-center justify-center ${colorIcono} shadow-inner ml-3`}>
-                    <Icono className="w-5 h-5" />
+                <div className={`flex-shrink-0 w-9 h-9 rounded-xl ${bgIcono} border border-white/8 flex items-center justify-center ${colorIcono}`}>
+                    <Icono className="w-4.5 h-4.5" />
                 </div>
             </div>
 
             {(subtexto || etiquetaTendencia) && (
-                <div className="relative z-10 mt-4 flex items-center gap-1.5 text-xs">
-                    <IconTendencia className={`w-3.5 h-3.5 flex-shrink-0 ${color}`} />
+                <div className="relative z-10 mt-3.5 flex items-center gap-1.5 text-[11px]">
+                    <IconTendencia className={`w-3 h-3 flex-shrink-0 ${color}`} />
                     <span className={`font-medium ${color}`}>{etiquetaTendencia ?? subtexto}</span>
                     {subtexto && etiquetaTendencia && (
                         <span className="text-zinc-600">{subtexto}</span>

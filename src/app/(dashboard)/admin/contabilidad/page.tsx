@@ -8,8 +8,12 @@ import {
     getCarteraPendienteAction,
     getTransaccionesAction,
 } from '@/lib/actions/contabilidad'
+import { getCajaActivaAction, getHistorialCajaAction } from '@/lib/actions/caja'
+import type { RolContabilidad } from '@/lib/types/contabilidad'
 
 export const metadata = { title: 'Contabilidad | MotoFix Admin' }
+
+const ROLES_PERMITIDOS: string[] = ['admin', 'superadmin', 'receptionist']
 
 export default async function ContabilidadPage() {
     const supabase = await createClient()
@@ -22,11 +26,39 @@ export default async function ContabilidadPage() {
         .eq('id', user.id)
         .single()
 
-    // Solo admin puede acceder al módulo contable
-    if ((perfil as any)?.role !== 'admin' && (perfil as any)?.role !== 'superadmin') {
-        redirect('/admin/dashboard')
+    const rol = (perfil as any)?.role as string | undefined
+    if (!rol || !ROLES_PERMITIDOS.includes(rol)) redirect('/admin/dashboard')
+
+    const rolContabilidad = rol as RolContabilidad
+    const esAdmin = rolContabilidad === 'admin' || rolContabilidad === 'superadmin'
+
+    // Caja: siempre se carga (admin y receptionist)
+    const [cajaActiva, historialCaja] = await Promise.all([
+        getCajaActivaAction(),
+        getHistorialCajaAction(10),
+    ])
+
+    if (!esAdmin) {
+        // Vista recepcionista: solo datos de caja + transacciones del día
+        const [transacciones] = await Promise.all([
+            getTransaccionesAction(),
+        ])
+
+        return (
+            <ContabilidadClient
+                rol={rolContabilidad}
+                resumen={null}
+                flujo={[]}
+                mix={[]}
+                cartera={[]}
+                transacciones={transacciones.ok ? transacciones.data : []}
+                cajaActiva={cajaActiva.ok ? cajaActiva.data : null}
+                historialCaja={historialCaja.ok ? historialCaja.data : []}
+            />
+        )
     }
 
+    // Vista admin/superadmin: todos los datos
     const [resumen, flujo, mix, cartera, transacciones] = await Promise.all([
         getResumenFinancieroAction(),
         getFlujoCajaAction(),
@@ -37,11 +69,14 @@ export default async function ContabilidadPage() {
 
     return (
         <ContabilidadClient
-            resumen={resumen.ok ? resumen.data : { ingresos_mes: 0, egresos_mes: 0, utilidad_mes: 0, cartera_pendiente: 0 }}
+            rol={rolContabilidad}
+            resumen={resumen.ok ? resumen.data : null}
             flujo={flujo.ok ? flujo.data : []}
             mix={mix.ok ? mix.data : []}
             cartera={cartera.ok ? cartera.data : []}
             transacciones={transacciones.ok ? transacciones.data : []}
+            cajaActiva={cajaActiva.ok ? cajaActiva.data : null}
+            historialCaja={historialCaja.ok ? historialCaja.data : []}
         />
     )
 }

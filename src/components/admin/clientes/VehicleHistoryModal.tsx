@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { gsap } from 'gsap'
 import {
     X, Wrench, CalendarIcon, Loader2, ChevronRight, FileText,
@@ -59,6 +60,9 @@ export default function VehicleHistoryModal({ isOpen, onClose, vehicle, clientId
     const [isLoading, setIsLoading] = useState(false)
     const [showCreateModal, setShowCreateModal] = useState(false)
     const [selectedRepair, setSelectedRepair] = useState<RepairLog | null>(null)
+    const [montado, setMontado] = useState(false)
+
+    useEffect(() => { setMontado(true) }, [])
 
     useEffect(() => {
         if (isOpen && vehicle) loadRepairs()
@@ -93,7 +97,7 @@ export default function VehicleHistoryModal({ isOpen, onClose, vehicle, clientId
             .catch(() => alert(`Código: ${repair.tracking_code}`))
     }
 
-    if (!isOpen || !vehicle) return null
+    if (!montado || !isOpen || !vehicle) return null
 
     return (
         <>
@@ -138,7 +142,8 @@ export default function VehicleHistoryModal({ isOpen, onClose, vehicle, clientId
             </div>
 
             {/* Screen modal */}
-            <div className="fixed inset-x-0 bottom-0 top-16 z-[110] flex items-end sm:items-center justify-center p-0 sm:p-6">
+            {createPortal(
+            <div className="fixed inset-0 z-[155] flex items-end sm:items-center justify-center p-0 sm:p-6">
                 <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={onClose} />
 
                 <div className="relative w-full max-w-3xl bg-zinc-950 border-0 sm:border border-white/10 rounded-t-2xl sm:rounded-2xl flex flex-col shadow-[0_0_50px_rgba(0,0,0,0.5)] animate-in slide-in-from-bottom sm:zoom-in-95 duration-200 h-[93dvh] sm:max-h-[90vh] overflow-hidden">
@@ -321,7 +326,9 @@ export default function VehicleHistoryModal({ isOpen, onClose, vehicle, clientId
                         )}
                     </div>
                 </div>
-            </div>
+            </div>,
+            document.body
+            )}
 
             {/* Repair Detail Drawer */}
             <RepairDetailDrawer

@@ -51,7 +51,8 @@ export async function middleware(request: NextRequest) {
   }
 
   // Redirect unauthenticated users away from protected routes
-  if (pathname.startsWith('/dashboard') && !user) {
+  const isProtectedRoute = pathname.startsWith('/admin') || pathname.startsWith('/superadmin')
+  if (isProtectedRoute && !user) {
     return applySecurityHeaders(NextResponse.redirect(new URL('/login', request.url)))
   }
 
@@ -64,7 +65,7 @@ export async function middleware(request: NextRequest) {
       .single()
 
     const role = (profileData as { role: UserRole } | null)?.role
-    const target = role ? getRoleDashboardPath(role) : '/dashboard'
+    const target = role ? getRoleDashboardPath(role) : '/admin/dashboard'
     return applySecurityHeaders(NextResponse.redirect(new URL(target, request.url)))
   }
 

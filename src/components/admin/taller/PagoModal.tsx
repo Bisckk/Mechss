@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useTransition } from 'react'
+import { createPortal } from 'react-dom'
 import { X, CreditCard, Banknote, Smartphone, Clock, CheckCircle, AlertCircle, Loader2, DollarSign } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import {
@@ -61,6 +62,9 @@ export default function PagoModal({ repair, isOpen, onClose, onPagado }: Props) 
     const [notas, setNotas] = useState('')
     const [formError, setFormError] = useState('')
     const [isPending, startTransition] = useTransition()
+    const [montado, setMontado] = useState(false)
+
+    useEffect(() => { setMontado(true) }, [])
 
     useEffect(() => {
         if (!isOpen || !repair) return
@@ -111,11 +115,11 @@ export default function PagoModal({ repair, isOpen, onClose, onPagado }: Props) 
         })
     }
 
-    if (!isOpen || !repair) return null
+    if (!montado || !isOpen || !repair) return null
 
     const isPaid = totales?.payment_status === 'paid'
 
-    return (
+    return createPortal(
         <div className="fixed inset-0 z-[200] flex">
             {/* Backdrop */}
             <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
@@ -342,6 +346,7 @@ export default function PagoModal({ repair, isOpen, onClose, onPagado }: Props) 
                     </div>
                 )}
             </div>
-        </div>
+        </div>,
+        document.body
     )
 }

@@ -15,7 +15,7 @@ interface Props {
 
 export default function CardV2({ children, className = '', relleno = 'md' }: Props) {
     return (
-        <div className={`bg-zinc-900 border border-white/5 rounded-2xl ${RELLENO[relleno]} ${className}`}>
+        <div className={`bg-zinc-900/50 border border-white/[0.06] rounded-2xl backdrop-blur-sm ${RELLENO[relleno]} ${className}`}>
             {children}
         </div>
     )

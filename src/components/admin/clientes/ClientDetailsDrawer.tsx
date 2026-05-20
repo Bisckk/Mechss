@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { X, User, Car, CalendarIcon, PenLine, Plus, Phone, Mail, FileText, Loader2, Thermometer, Zap, FileDown } from 'lucide-react'
 import { gsap } from 'gsap'
 import { getClientVehiclesAction } from '@/lib/actions/admin'
@@ -39,6 +40,9 @@ export default function ClientDetailsDrawer({ isOpen, onClose, client }: ClientD
     const [showAddVehicle, setShowAddVehicle] = useState(false)
     const backdropRef = useRef<HTMLDivElement>(null)
     const modalRef = useRef<HTMLDivElement>(null)
+    const [montado, setMontado] = useState(false)
+
+    useEffect(() => { setMontado(true) }, [])
 
     useEffect(() => {
         if (isOpen && client) {
@@ -67,13 +71,13 @@ export default function ClientDetailsDrawer({ isOpen, onClose, client }: ClientD
         setIsLoadingVehicles(false)
     }
 
-    if (!isOpen || !client) return null
+    if (!montado || !isOpen || !client) return null
 
     const colors = ['orange', 'blue', 'emerald', 'violet', 'rose', 'cyan']
     const color = colors[client.full_name.charCodeAt(0) % colors.length]
 
-    return (
-        <div className="fixed inset-x-0 bottom-0 top-16 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-6">
+    return createPortal(
+        <div className="fixed inset-0 z-[155] flex items-end sm:items-center justify-center p-0 sm:p-6">
             {/* Backdrop */}
             <div
                 ref={backdropRef}
@@ -258,6 +262,7 @@ export default function ClientDetailsDrawer({ isOpen, onClose, client }: ClientD
                 clientId={client.id}
                 onSuccess={loadVehicles}
             />
-        </div>
+        </div>,
+        document.body
     )
 }

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import { gsap } from 'gsap'
 import {
     X, Wrench, Loader2, Send, Clock, User, Hash,
@@ -90,6 +91,9 @@ export default function RepairLogModal({ isOpen, onClose, repair, userRole = 'ad
     const [lightboxUrl, setLightboxUrl] = useState<string | null>(null)
     const fileInputRef = useRef<HTMLInputElement>(null)
     const textareaRef = useRef<HTMLTextAreaElement>(null)
+    const [montado, setMontado] = useState(false)
+
+    useEffect(() => { setMontado(true) }, [])
 
     useEffect(() => {
         if (isOpen && repair) {
@@ -189,9 +193,12 @@ export default function RepairLogModal({ isOpen, onClose, repair, userRole = 'ad
     const config = statusConfig[currentStatus] || { label: currentStatus, color: 'text-zinc-400', bg: 'bg-zinc-800' }
     const canSubmit = newNote.trim() || photos.some(p => p.dataUrl && !p.uploading)
 
+    if (!montado) return null
+
     return (
         <>
-            <div className="fixed inset-x-0 bottom-0 top-16 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-6">
+            {createPortal(
+            <div className="fixed inset-0 z-[155] flex items-end sm:items-center justify-center p-0 sm:p-6">
                 <div className="absolute inset-0 bg-black/85 backdrop-blur-lg" onClick={onClose} />
 
                 <div className="relative w-full max-w-4xl bg-zinc-950 border-0 sm:border border-white/10 rounded-t-2xl sm:rounded-2xl flex flex-col shadow-[0_0_60px_rgba(0,0,0,0.6)] animate-in slide-in-from-bottom sm:zoom-in-95 duration-200 h-[93dvh] sm:max-h-[90vh] overflow-hidden">
@@ -518,10 +525,12 @@ export default function RepairLogModal({ isOpen, onClose, repair, userRole = 'ad
                         )}
                     </div>
                 </div>
-            </div>
+            </div>,
+            document.body
+            )}
 
             {/* Lightbox */}
-            {lightboxUrl && (
+            {lightboxUrl && createPortal(
                 <div
                     className="fixed inset-0 z-[200] bg-black/95 flex items-center justify-center p-4"
                     onClick={() => setLightboxUrl(null)}
@@ -538,7 +547,8 @@ export default function RepairLogModal({ isOpen, onClose, repair, userRole = 'ad
                         className="max-w-full max-h-[88vh] object-contain rounded-2xl shadow-2xl"
                         onClick={e => e.stopPropagation()}
                     />
-                </div>
+                </div>,
+                document.body
             )}
         </>
     )

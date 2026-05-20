@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState, useTransition } from 'react'
+import { createPortal } from 'react-dom'
 import { gsap } from 'gsap'
 import { X, UserCog, Wrench, Eye, EyeOff, Loader2, RefreshCw, Phone, Mail, User } from 'lucide-react'
 import { createEmployeeAction } from '@/lib/actions/admin'
@@ -25,6 +26,9 @@ export default function NewEmployeeDrawer({ open, onClose, onCreated }: Props) {
     const backdropRef = useRef<HTMLDivElement>(null)
     const modalRef = useRef<HTMLDivElement>(null)
     const [isPending, startTransition] = useTransition()
+    const [montado, setMontado] = useState(false)
+
+    useEffect(() => { setMontado(true) }, [])
 
     const [form, setForm] = useState({
         full_name: '', email: '', phone: '',
@@ -88,10 +92,12 @@ export default function NewEmployeeDrawer({ open, onClose, onCreated }: Props) {
     const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) =>
         setForm(f => ({ ...f, [k]: e.target.value }))
 
-    return (
+    if (!montado) return null
+
+    return createPortal(
         <div
             ref={backdropRef}
-            className="fixed inset-0 z-[160] bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4"
+            className="fixed inset-0 z-[155] bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4"
             style={{ display: 'none' }}
             onClick={e => { if (e.target === e.currentTarget) handleClose() }}
         >
@@ -223,7 +229,8 @@ export default function NewEmployeeDrawer({ open, onClose, onCreated }: Props) {
                     </button>
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     )
 }
 

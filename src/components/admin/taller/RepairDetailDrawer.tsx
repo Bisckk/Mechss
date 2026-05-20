@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import {
     X, Clock, Wrench, Eye, EyeOff, Printer, ZoomIn,
     User, Phone, DollarSign, AlertCircle
@@ -70,6 +71,9 @@ export default function RepairDetailDrawer({ isOpen, onClose, repairId }: Props)
 
     const backdropRef = useRef<HTMLDivElement>(null)
     const modalRef    = useRef<HTMLDivElement>(null)
+    const [montado, setMontado] = useState(false)
+
+    useEffect(() => { setMontado(true) }, [])
 
     // Modal animation
     useEffect(() => {
@@ -168,9 +172,10 @@ export default function RepairDetailDrawer({ isOpen, onClose, repairId }: Props)
             )}
 
             {/* Modal backdrop */}
+            {montado && createPortal(
             <div
                 ref={backdropRef}
-                className="fixed inset-0 z-[140] bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4"
+                className="fixed inset-0 z-[155] bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4"
                 style={{ display: 'none' }}
                 onClick={onClose}
             >
@@ -349,16 +354,19 @@ export default function RepairDetailDrawer({ isOpen, onClose, repairId }: Props)
                         )}
                     </div>
                 </div>
-            </div>
+            </div>,
+            document.body
+            )}
 
             {/* Lightbox */}
-            {lightbox && (
+            {montado && lightbox && createPortal(
                 <div className="fixed inset-0 z-[200] bg-black/92 backdrop-blur-md flex items-center justify-center p-4" onClick={() => setLightbox(null)}>
                     <button onClick={() => setLightbox(null)} className="absolute top-4 right-4 p-2 text-white bg-white/10 hover:bg-white/20 rounded-full transition-all z-10">
                         <X className="w-5 h-5" />
                     </button>
                     <img src={lightbox} alt="Foto ampliada" className="max-w-full max-h-[90vh] rounded-xl shadow-2xl object-contain" onClick={e => e.stopPropagation()} />
-                </div>
+                </div>,
+                document.body
             )}
         </>
     )

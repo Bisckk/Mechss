@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useEffect, useTransition } from 'react'
+import { createPortal } from 'react-dom'
 import { X, Truck, Shield, CheckCircle, Loader2, AlertTriangle } from 'lucide-react'
 import { entregarOrdenAction } from '@/lib/actions/garantias'
 
@@ -34,8 +35,11 @@ export default function GarantiaModal({ repair, isOpen, onClose, onEntregado }: 
     const [error, setError] = useState('')
     const [successId, setSuccessId] = useState<string | null>(null)
     const [isPending, startTransition] = useTransition()
+    const [montado, setMontado] = useState(false)
 
-    if (!isOpen || !repair) return null
+    useEffect(() => { setMontado(true) }, [])
+
+    if (!montado || !isOpen || !repair) return null
 
     const handleSubmit = () => {
         setError('')
@@ -62,7 +66,7 @@ export default function GarantiaModal({ repair, isOpen, onClose, onEntregado }: 
     const expiresAt = new Date()
     expiresAt.setDate(expiresAt.getDate() + validDays)
 
-    return (
+    return createPortal(
         <div className="fixed inset-0 z-[200] flex">
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={handleClose} />
             <div className="relative ml-auto h-full w-full max-w-md bg-zinc-950 border-l border-white/10 shadow-2xl flex flex-col">
@@ -193,6 +197,7 @@ export default function GarantiaModal({ repair, isOpen, onClose, onEntregado }: 
                     </>
                 )}
             </div>
-        </div>
+        </div>,
+        document.body
     )
 }

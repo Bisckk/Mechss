@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import {
     X, Wrench, Loader2, Save, User, UserCog,
     DollarSign, FileText, Clock, AlertCircle
@@ -60,6 +61,9 @@ export default function DetallesOrdenModal({ isOpen, onClose, repair, onSaved }:
     const [cargandoMecanicos, setCargandoMecanicos] = useState(false)
     const [guardando, setGuardando]         = useState(false)
     const [error, setError]                 = useState<string | null>(null)
+    const [montado, setMontado]             = useState(false)
+
+    useEffect(() => { setMontado(true) }, [])
 
     // Campos editables
     const [motivo, setMotivo]               = useState('')
@@ -113,7 +117,7 @@ export default function DetallesOrdenModal({ isOpen, onClose, repair, onSaved }:
         setGuardando(false)
     }
 
-    if (!isOpen || !repair) return null
+    if (!montado || !isOpen || !repair) return null
 
     const sc = statusConfig[repair.status] || { label: repair.status, color: 'text-zinc-400', bg: 'bg-zinc-800' }
     const fechaOriginal = repair.estimated_completion
@@ -126,8 +130,8 @@ export default function DetallesOrdenModal({ isOpen, onClose, repair, onSaved }:
         (mecanicoId || null) !== (repair.mechanic_id || null) ||
         (fechaEstimada || null) !== fechaOriginal
 
-    return (
-        <div className="fixed inset-x-0 bottom-0 top-16 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-6">
+    return createPortal(
+        <div className="fixed inset-0 z-[155] flex items-end sm:items-center justify-center p-0 sm:p-6">
             <div className="absolute inset-0 bg-black/85 backdrop-blur-lg" onClick={onClose} />
 
             <div className="relative w-full max-w-xl bg-zinc-950 border-0 sm:border border-white/10 rounded-t-2xl sm:rounded-2xl flex flex-col shadow-[0_0_60px_rgba(0,0,0,0.6)] animate-in slide-in-from-bottom sm:zoom-in-95 duration-200 max-h-[93dvh] sm:max-h-[88vh] overflow-hidden">
@@ -295,6 +299,7 @@ export default function DetallesOrdenModal({ isOpen, onClose, repair, onSaved }:
                     </button>
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     )
 }

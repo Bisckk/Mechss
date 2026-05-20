@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useTransition, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { X, User, Phone, Mail, MapPin, FileText, Loader2, UserPlus } from 'lucide-react'
 import { gsap } from 'gsap'
 import { createClientAction, type CreateClientData } from '@/lib/actions/admin'
@@ -35,6 +36,9 @@ export default function NewClientModal({ isOpen, onClose, onCreated }: NewClient
 
     const backdropRef = useRef<HTMLDivElement>(null)
     const modalRef    = useRef<HTMLDivElement>(null)
+    const [montado, setMontado] = useState(false)
+
+    useEffect(() => { setMontado(true) }, [])
 
     // Animate in on open
     useEffect(() => {
@@ -100,10 +104,10 @@ export default function NewClientModal({ isOpen, onClose, onCreated }: NewClient
         })
     }
 
-    if (!isOpen) return null
+    if (!montado || !isOpen) return null
 
-    return (
-        <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4">
+    return createPortal(
+        <div className="fixed inset-0 z-[155] flex items-end sm:items-center justify-center p-0 sm:p-4">
             {/* Backdrop */}
             <div
                 ref={backdropRef}
@@ -271,6 +275,7 @@ export default function NewClientModal({ isOpen, onClose, onCreated }: NewClient
                     </button>
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     )
 }

@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState, useTransition } from 'react'
+import { createPortal } from 'react-dom'
 import { gsap } from 'gsap'
 import {
     X, Search, User, Car, Wrench, ChevronRight, ChevronLeft,
@@ -128,6 +129,9 @@ export default function CreateRepairDrawer({ open, onClose, onCreated }: Props) 
     // Ticket
     const [ticketData, setTicketData] = useState<any>(null)
     const [showTicket, setShowTicket] = useState(false)
+
+    const [montado, setMontado] = useState(false)
+    useEffect(() => { setMontado(true) }, [])
 
     // ── Modal open/close animation ────────────────────────────────────────────
     useEffect(() => {
@@ -360,11 +364,14 @@ export default function CreateRepairDrawer({ open, onClose, onCreated }: Props) 
     const displayList   = showingSearch ? clientResults : recentClients
 
     // ── Render ────────────────────────────────────────────────────────────────
+    if (!montado) return null
+
     return (
         <>
+            {createPortal(
             <div
                 ref={backdropRef}
-                className="fixed inset-0 z-[160] bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4"
+                className="fixed inset-0 z-[155] bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4"
                 style={{ display: 'none' }}
                 onClick={e => { if (e.target === e.currentTarget) handleClose() }}
             >
@@ -859,6 +866,7 @@ export default function CreateRepairDrawer({ open, onClose, onCreated }: Props) 
                     </div>
                 </div>
             </div>
+            , document.body)}
 
             <PrintTicketModal open={showTicket} onClose={() => setShowTicket(false)} data={ticketData} />
         </>

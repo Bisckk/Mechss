@@ -123,15 +123,45 @@ export function exportOrdenes(ordenes: {
 
 export function exportTransacciones(tx: {
     fecha: string; tipo: string; categoria: string; descripcion: string;
-    monto: number; metodo_pago: string | null; estado: string;
+    monto: number; impuesto_tipo?: string | null; impuesto_valor?: number;
+    metodo_pago: string | null; referencia?: string | null; estado: string;
 }[]): void {
     exportToCsv(tx, [
-        { header: 'Fecha',       accessor: r => r.fecha },
-        { header: 'Tipo',        accessor: r => r.tipo },
-        { header: 'Categoría',   accessor: r => r.categoria },
-        { header: 'Descripción', accessor: r => r.descripcion },
-        { header: 'Monto',       accessor: r => r.monto },
-        { header: 'Método',      accessor: r => r.metodo_pago ?? '' },
-        { header: 'Estado',      accessor: r => r.estado },
+        { header: 'Fecha',          accessor: r => r.fecha },
+        { header: 'Tipo',           accessor: r => r.tipo === 'income' ? 'Ingreso' : 'Egreso' },
+        { header: 'Categoría',      accessor: r => r.categoria },
+        { header: 'Descripción',    accessor: r => r.descripcion },
+        { header: 'Monto base',     accessor: r => r.monto - (r.impuesto_valor ?? 0) },
+        { header: 'Impuesto tipo',  accessor: r => r.impuesto_tipo ?? '' },
+        { header: 'Impuesto valor', accessor: r => r.impuesto_valor ?? 0 },
+        { header: 'Monto total',    accessor: r => r.monto },
+        { header: 'Método pago',    accessor: r => r.metodo_pago ?? '' },
+        { header: 'Referencia',     accessor: r => r.referencia ?? '' },
+        { header: 'Estado',         accessor: r => r.estado },
     ], 'transacciones')
+}
+
+export function exportLibroDiario(tx: {
+    fecha: string; tipo: string; categoria: string; descripcion: string;
+    monto: number; impuesto_tipo?: string | null; impuesto_valor?: number;
+    metodo_pago: string | null; referencia?: string | null;
+    notas?: string | null; estado: string; created_at: string;
+}[], mesLabel: string): void {
+    // Ordenar cronológico ascendente
+    const ordenado = [...tx]
+        .filter(t => t.estado !== 'cancelled')
+        .sort((a, b) => a.fecha.localeCompare(b.fecha))
+
+    exportToCsv(ordenado, [
+        { header: 'Fecha',       accessor: r => r.fecha },
+        { header: 'Cuenta debe', accessor: r => r.tipo === 'expense' ? r.categoria : '' },
+        { header: 'Cuenta haber',accessor: r => r.tipo === 'income'  ? r.categoria : '' },
+        { header: 'Concepto',    accessor: r => r.descripcion },
+        { header: 'Débito',      accessor: r => r.tipo === 'expense' ? r.monto : '' },
+        { header: 'Crédito',     accessor: r => r.tipo === 'income'  ? r.monto : '' },
+        { header: 'Impuesto',    accessor: r => r.impuesto_valor ?? 0 },
+        { header: 'Método',      accessor: r => r.metodo_pago ?? '' },
+        { header: 'Referencia',  accessor: r => r.referencia ?? '' },
+        { header: 'Notas',       accessor: r => r.notas ?? '' },
+    ], `libro_diario_${mesLabel.replace(' ', '_')}`)
 }
